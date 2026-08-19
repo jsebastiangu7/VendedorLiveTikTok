@@ -32,11 +32,15 @@ table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}.tablew
 @media(max-width:1050px){.cards{grid-template-columns:repeat(2,1fr)}.cards3{grid-template-columns:repeat(1,1fr)}.dashboard-grid{grid-template-columns:1fr}.formgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){header{height:auto;min-height:60px;flex-wrap:wrap;padding:10px}.brand{width:100%}nav{order:3;width:100%}main{padding:13px}.formgrid{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}}
 </style>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 </head>
 <body>
 <header>
   <div class="brand">Gestor <span>LIVE TikTok</span></div>
   <nav id="nav"></nav>
+  <button class="btn" id="driveConnectBtn" onclick="driveConnect()">Conectar Google Drive</button>
+  <span id="driveStatus" class="note">Sin conectar</span>
   <button class="save" onclick="saveAll()">Guardar</button>
 </header>
 <main>
@@ -161,7 +165,8 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function saveAll(){
   localStorage.setItem(KEY,JSON.stringify(state));
   refresh();
-  alert('Datos guardados en este navegador.');
+  if(driveAccessToken){driveSaveData()}
+  alert(driveAccessToken?'Datos guardados localmente y sincronizados con Google Drive.':'Datos guardados en este navegador. Conecta Google Drive para respaldo en la nube.');
 }
 function refresh(){
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
@@ -493,7 +498,71 @@ function generateInvoice(orderId){
   if(!win){alert('El navegador bloqueó la ventana emergente. Habilítala para generar la factura.');return}
   win.document.open();win.document.write(html);win.document.close();
 }
-navInit();loadDefaults();refresh();loadInvoiceConfig();
+const DRIVE_CLIENT_ID='577413187819-72ieaitdj5mcgohg4s7n27q8gi1rqbrf.apps.googleusercontent.com';
+const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILENAME='gestor-live-tiktok-data.json';
+let driveTokenClient=null, driveAccessToken=null, driveFileId=null, gapiReady=false;
+
+function initDrive(){
+  if(!window.gapi||!window.google){setTimeout(initDrive,300);return}
+  gapi.load('client',async()=>{
+    await gapi.client.init({});
+    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+    gapiReady=true;
+  });
+  driveTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:DRIVE_CLIENT_ID,
+    scope:DRIVE_SCOPE,
+    callback:async(resp)=>{
+      if(resp.error){alert('No se pudo conectar con Google Drive.');return}
+      driveAccessToken=resp.access_token;
+      gapi.client.setToken({access_token:driveAccessToken});
+      $('driveStatus').textContent='Conectado a Google Drive';
+      $('driveConnectBtn').textContent='Reconectar Drive';
+      await driveLoadData();
+    }
+  });
+}
+function driveConnect(){
+  if(!driveTokenClient||!gapiReady){alert('Google Drive aún está cargando, intenta de nuevo en unos segundos.');return}
+  driveTokenClient.requestAccessToken({prompt:driveAccessToken?'':'consent'});
+}
+async function driveFindFile(){
+  const res=await gapi.client.drive.files.list({q:`name='${DRIVE_FILENAME}' and trashed=false`,fields:'files(id,name)',spaces:'drive'});
+  const files=res.result.files;
+  return files&&files.length?files[0].id:null;
+}
+async function driveLoadData(){
+  try{
+    driveFileId=await driveFindFile();
+    if(!driveFileId){await driveSaveData();$('driveStatus').textContent='Conectado — archivo creado en Drive';return}
+    const res=await gapi.client.drive.files.get({fileId:driveFileId,alt:'media'});
+    let data=res.result;
+    if(typeof data==='string')data=JSON.parse(data);
+    state=data;
+    if(!state.invoiceConfig)state.invoiceConfig={empresa:'Pandala Kawaii',logo:'',nit:'',telefono:'',email:'',direccion:'',mensaje:'¡Gracias por tu compra! — Pandala Kawaii'};
+    localStorage.setItem(KEY,JSON.stringify(state));
+    refresh();loadInvoiceConfig();
+    $('driveStatus').textContent='Datos cargados desde Google Drive';
+  }catch(err){console.error(err);alert('Error al cargar datos desde Google Drive.');}
+}
+async function driveSaveData(){
+  if(!driveAccessToken)return;
+  try{
+    const content=JSON.stringify(state);
+    const metadata={name:DRIVE_FILENAME,mimeType:'application/json'};
+    const boundary='gestorlivetiktok_boundary';
+    const delim='\r\n--'+boundary+'\r\n';
+    const close='\r\n--'+boundary+'--';
+    const body=delim+'Content-Type: application/json\r\n\r\n'+JSON.stringify(metadata)+delim+'Content-Type: application/json\r\n\r\n'+content+close;
+    const path=driveFileId?'/upload/drive/v3/files/'+driveFileId:'/upload/drive/v3/files';
+    const method=driveFileId?'PATCH':'POST';
+    const res=await gapi.client.request({path,method,params:{uploadType:'multipart'},headers:{'Content-Type':'multipart/related; boundary="'+boundary+'"'},body});
+    if(!driveFileId)driveFileId=res.result.id;
+    $('driveStatus').textContent='Guardado en Google Drive ✓';
+  }catch(err){console.error(err);alert('Error al guardar en Google Drive.');}
+}
+navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
 </script>
 
 <div id="productModal" class="modal-backdrop" onclick="if(event.target===this)closeProductModal()">
