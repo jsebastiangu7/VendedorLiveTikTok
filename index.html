@@ -41,6 +41,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}.tablew
   <nav id="nav"></nav>
   <button class="btn" id="driveConnectBtn" onclick="driveConnect()">Conectar Google Drive</button>
   <span id="driveStatus" class="note">Sin conectar</span>
+  <span id="autoSaveStatus" class="note"></span>
   <button class="save" onclick="saveAll()">Guardar</button>
 </header>
 <main>
@@ -161,11 +162,23 @@ const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0);
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+let autoSyncTimer=null;
+function persist(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  scheduleDriveSync();
+}
+function updateAutoSaveStatus(text){const el=$('autoSaveStatus');if(el)el.textContent=text}
+function scheduleDriveSync(){
+  if(!driveAccessToken){updateAutoSaveStatus('Guardado localmente');return}
+  updateAutoSaveStatus('Sincronizando con Drive…');
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer=setTimeout(async()=>{await driveSaveData();updateAutoSaveStatus('Guardado automático ✓ '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}))},1500);
+}
 
 function saveAll(){
   localStorage.setItem(KEY,JSON.stringify(state));
   refresh();
-  if(driveAccessToken){driveSaveData()}
+  if(driveAccessToken){driveSaveData();updateAutoSaveStatus('Guardado manual ✓')}else{updateAutoSaveStatus('Guardado localmente (Drive no conectado)')}
   alert(driveAccessToken?'Datos guardados localmente y sincronizados con Google Drive.':'Datos guardados en este navegador. Conecta Google Drive para respaldo en la nube.');
 }
 function refresh(){
@@ -247,7 +260,7 @@ function deleteOrder(id){
   if(!confirm(`¿Confirmas que deseas eliminar el pedido ${o.id} de ${o.cliente}? Esta acción eliminará también sus abonos registrados.`))return;
   state.orders=state.orders.filter(x=>x.id!==id);
   state.payments=state.payments.filter(p=>p.pedido!==id);
-  localStorage.setItem(KEY,JSON.stringify(state));
+  persist();
   refresh();
   alert('Pedido eliminado.');
 }
@@ -270,7 +283,7 @@ function renderInventory(){
 function deleteProduct(name){
   if(!confirm(`¿Confirmas que deseas eliminar el producto "${name}" del inventario?`))return;
   state.inventory=state.inventory.filter(p=>p.producto!==name);
-  localStorage.setItem(KEY,JSON.stringify(state));
+  persist();
   refresh();
   alert('Producto eliminado.');
 }
@@ -319,7 +332,7 @@ function saveOrder(){
   if(old){Object.assign(old,o)}else{state.orders.push(o)}
   const initial=Number($('initialPayment').value)||0;
   if(initial>0)state.payments.push({id:uid(),pedido:id,fecha,cliente,valor:initial,medio:$('initialMethod').value,referencia:$('initialRef').value});
-  localStorage.setItem(KEY,JSON.stringify(state));alert(old?'Pedido actualizado.':'Pedido guardado.');clearOrder();refresh();showView('pedidos');
+  persist();alert(old?'Pedido actualizado.':'Pedido guardado.');clearOrder();refresh();showView('pedidos');
 }
 function choosePayment(id){showView('abonos');$('payOrder').value=id}
 function addPayment(){
@@ -327,20 +340,20 @@ function addPayment(){
   const o=state.orders.find(x=>x.id===id);if(!o||amount<=0){alert('Selecciona un pedido e indica un valor válido.');return}
   state.payments.push({id:uid(),pedido:id,fecha:today(),cliente:o.cliente,valor:amount,medio:$('payMethod').value,referencia:$('payRef').value});
   const t=orderTotal(o),p=paid(o); if(p>=t)o.estado='Pagado';
-  localStorage.setItem(KEY,JSON.stringify(state));$('payAmount').value='';$('payRef').value='';alert('Abono registrado.');refresh();
+  persist();$('payAmount').value='';$('payRef').value='';alert('Abono registrado.');refresh();
 }
 function newClient(){
   const nombre=prompt('Nombre del cliente:');if(!nombre)return;
   if(state.clients.some(c=>c.nombre.toLowerCase()===nombre.trim().toLowerCase())){alert('Ese cliente ya existe.');return}
   const telefono=prompt('WhatsApp / teléfono:')||'',tiktok=prompt('Usuario TikTok:')||'';
-  state.clients.push({nombre:nombre.trim(),telefono,tiktok,direccion:'',notas:'',estado:'Activo'});localStorage.setItem(KEY,JSON.stringify(state));refresh();$('orderClient').value=nombre.trim();
+  state.clients.push({nombre:nombre.trim(),telefono,tiktok,direccion:'',notas:'',estado:'Activo'});persist();refresh();$('orderClient').value=nombre.trim();
 }
 function editClient(name){
   const c=state.clients.find(x=>x.nombre===name);if(!c)return;
   const telefono=prompt('WhatsApp / teléfono:',c.telefono)||c.telefono;
   const tiktok=prompt('Usuario TikTok:',c.tiktok)||c.tiktok;
   const direccion=prompt('Dirección:',c.direccion)||c.direccion;
-  c.telefono=telefono;c.tiktok=tiktok;c.direccion=direccion;localStorage.setItem(KEY,JSON.stringify(state));refresh();
+  c.telefono=telefono;c.tiktok=tiktok;c.direccion=direccion;persist();refresh();
 }
 function openProductModal(){
   $('productAction').value='new';$('existingProductField').style.display='none';
@@ -362,7 +375,7 @@ function saveProductModal(){
     const name=$('existingProduct').value,p=state.inventory.find(x=>x.producto===name);
     if(!p){alert('Selecciona un producto.');return}
     p.stock=(Number(p.stock)||0)+qty;
-    localStorage.setItem(KEY,JSON.stringify(state));closeProductModal();refresh();alert(`Se adicionaron ${qty} unidades a ${name}.`);return;
+    persist();closeProductModal();refresh();alert(`Se adicionaron ${qty} unidades a ${name}.`);return;
   }
   const name=$('newProductName').value.trim();
   if(!name){alert('Indica el nombre del producto.');return}
@@ -372,7 +385,7 @@ function saveProductModal(){
     envio:Number($('newProductShipping').value)||0,stock:qty,sold:0,precio:Number($('newProductPrice').value)||0,
     minimo:Number($('newProductMin').value)||0,fechaCompra:$('newProductDate').value||today()
   });
-  localStorage.setItem(KEY,JSON.stringify(state));closeProductModal();refresh();alert('Producto creado correctamente.');
+  persist();closeProductModal();refresh();alert('Producto creado correctamente.');
 }
 function openEditProduct(name){
   const p=state.inventory.find(x=>x.producto===name);if(!p)return;
@@ -405,7 +418,7 @@ function saveEditProduct(){
   p.envio=Number($('editProductShipping').value)||0;
   p.precio=Number($('editProductPrice').value)||0;
   p.fechaCompra=$('editProductDate').value||p.fechaCompra;
-  localStorage.setItem(KEY,JSON.stringify(state));
+  persist();
   closeEditProduct();refresh();alert('Producto actualizado.');
 }
 function loadDefaults(){
@@ -421,12 +434,12 @@ function loadInvoiceConfig(){
 function handleLogoUpload(e){
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=ev=>{state.invoiceConfig.logo=ev.target.result;$('invLogoPreview').src=ev.target.result;$('invLogoPreview').style.display='inline-block';localStorage.setItem(KEY,JSON.stringify(state))};
+  reader.onload=ev=>{state.invoiceConfig.logo=ev.target.result;$('invLogoPreview').src=ev.target.result;$('invLogoPreview').style.display='inline-block';persist()};
   reader.readAsDataURL(file);
 }
 function clearInvoiceLogo(){
   state.invoiceConfig.logo='';$('invLogoPreview').src='';$('invLogoPreview').style.display='none';$('invLogoFile').value='';
-  localStorage.setItem(KEY,JSON.stringify(state));
+  persist();
 }
 function saveInvoiceConfig(){
   state.invoiceConfig={
@@ -438,7 +451,7 @@ function saveInvoiceConfig(){
     mensaje:$('invMensaje').value.trim(),
     logo:state.invoiceConfig.logo||''
   };
-  localStorage.setItem(KEY,JSON.stringify(state));
+  persist();
   alert('Datos de factura guardados.');
 }
 function generateInvoice(orderId){
