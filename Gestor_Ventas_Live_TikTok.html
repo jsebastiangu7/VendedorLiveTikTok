@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestor de Ventas — LIVE TikTok</title>
+<style>
+:root{--bg:#ffffff;--card:#ffffff;--ink:#161616;--muted:#5c6a5f;--primary:#3f7d4a;--primary2:#2f5f38;--primary-light:#e9f4ea;--ok:#2f7d4a;--warn:#a9660a;--danger:#c0392b;--border:#e3e7e3}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;padding:0 18px;gap:18px}
+.brand{font-weight:800;font-size:18px;white-space:nowrap;color:var(--ink)}.brand span{color:var(--primary)}
+nav{display:flex;gap:6px;overflow:auto;flex:1}nav button{border:0;background:transparent;padding:10px 12px;border-radius:9px;cursor:pointer;color:#3d453f;font-weight:650;white-space:nowrap}nav button.active{background:var(--primary-light);color:var(--primary)}
+.save{background:var(--primary);color:#fff;border:0;border-radius:9px;padding:11px 16px;font-weight:800;cursor:pointer;white-space:nowrap}.save:hover{background:var(--primary2)}
+main{max-width:1500px;margin:0 auto;padding:22px}
+.view{display:none}.view.active{display:block}
+h1{font-size:25px;margin:0 0 5px;color:var(--ink)}.subtitle{color:var(--muted);margin-bottom:20px}
+.grid{display:grid;gap:14px}.cards{grid-template-columns:repeat(5,minmax(150px,1fr));}.cards3{grid-template-columns:repeat(3,minmax(180px,1fr));}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:17px;box-shadow:0 1px 2px #00000008}.metric{font-size:27px;font-weight:850;margin-top:5px;color:var(--ink)}.label{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:750}
+.dashboard-grid{grid-template-columns:1.35fr 1fr}.panel{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px}.panel h2{font-size:16px;margin:0 0 14px;color:var(--ink)}
+form{display:grid;gap:14px}.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;font-weight:750;color:#4a544c}.field input,.field select,.field textarea{width:100%;border:1px solid #ccd4cc;border-radius:8px;padding:10px;background:#fff;font:inherit;color:var(--ink)}.field textarea{min-height:70px;resize:vertical}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:13px}.toolbar input,.toolbar select{border:1px solid #ccd4cc;border-radius:8px;padding:9px;font:inherit;background:#fff}
+.btn{border:1px solid #ccd4cc;background:#fff;border-radius:8px;padding:9px 12px;cursor:pointer;font-weight:700;color:var(--ink)}
+.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.primary:hover{background:var(--primary2)}
+.btn.danger{color:#fff;background:var(--danger);border-color:var(--danger)}.btn.danger:hover{background:#a5301f}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}.tablewrap{overflow:auto;max-height:65vh;border:1px solid var(--border);border-radius:10px}th,td{padding:9px 10px;border-bottom:1px solid #eef1ee;text-align:left;white-space:nowrap}th{background:#f7faf7;position:sticky;top:0;z-index:1;font-size:11px;text-transform:uppercase;color:#5c6a5f}td.num{text-align:right}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef1ee}.pill.ok{background:#e4f7ea;color:var(--ok)}.pill.warn{background:#fdf1de;color:var(--warn)}.pill.danger{background:#fbe4e0;color:var(--danger)}
+.order-lines{width:100%;border-collapse:collapse}.order-lines th,.order-lines td{padding:7px;border-bottom:1px solid #eef1ee}.order-lines input,.order-lines select{padding:8px;border:1px solid #ccd4cc;border-radius:7px;width:100%}.order-total{display:flex;justify-content:flex-end;gap:28px;font-size:18px;font-weight:850;margin-top:12px}.quick{display:flex;gap:8px;flex-wrap:wrap}
+.empty{text-align:center;color:var(--muted);padding:30px}.note{font-size:12px;color:var(--muted)}.statusbar{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 12px;background:#f7faf7;border-radius:8px;font-size:12px}
+.client-orders{margin-top:14px}.client-orders h3{font-size:15px;margin:0 0 10px}.action-row{display:flex;gap:6px;flex-wrap:wrap}
+.modal-backdrop{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:100}.modal-backdrop.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:20px;width:min(560px,calc(100% - 30px));box-shadow:0 20px 60px #0004}.modal h2{margin:0 0 14px;font-size:18px;color:var(--ink)}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+@media(max-width:1050px){.cards{grid-template-columns:repeat(2,1fr)}.cards3{grid-template-columns:repeat(1,1fr)}.dashboard-grid{grid-template-columns:1fr}.formgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){header{height:auto;min-height:60px;flex-wrap:wrap;padding:10px}.brand{width:100%}nav{order:3;width:100%}main{padding:13px}.formgrid{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Gestor <span>LIVE TikTok</span></div>
+  <nav id="nav"></nav>
+  <button class="save" onclick="saveAll()">Guardar</button>
+</header>
+<main>
+<section id="dashboard" class="view active">
+  <h1>Dashboard</h1><div class="subtitle">Control rápido de ventas, pedidos, pagos e inventario.</div>
+  <div class="grid cards">
+    <div class="card"><div class="label">Ventas</div><div class="metric" id="mVentas">$0</div></div>
+    <div class="card"><div class="label">Abonos recibidos</div><div class="metric" id="mAbonos">$0</div></div>
+    <div class="card"><div class="label">Saldo pendiente</div><div class="metric" id="mSaldo">$0</div></div>
+    <div class="card"><div class="label">Pedidos abiertos</div><div class="metric" id="mAbiertos">0</div></div>
+    <div class="card"><div class="label">Stock bajo</div><div class="metric" id="mStock">0</div></div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>Valor de inventario</h2>
+    <div class="grid cards3">
+      <div class="card"><div class="label">Monto total del inventario</div><div class="metric" id="mInvTotal">$0</div></div>
+      <div class="card"><div class="label">Inventario &gt; 90 días</div><div class="metric" id="mInv90">$0</div></div>
+      <div class="card"><div class="label">% inventario &gt; 90 días</div><div class="metric" id="mInv90Pct">0%</div></div>
+    </div>
+    <div class="note" style="margin-top:10px">Calculado sobre el costo (costo + envío) del stock actual disponible, según la fecha de compra registrada en cada producto.</div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>Pedidos por cliente</h2>
+    <div class="toolbar" style="margin-bottom:0">
+      <select id="dashboardClient" onchange="renderClientOrders()"><option value="">Seleccionar cliente…</option></select>
+    </div>
+    <div id="clientOrders" class="client-orders"><div class="empty">Selecciona un cliente para ver sus pedidos.</div></div>
+  </div>
+  <div class="grid dashboard-grid" style="margin-top:14px">
+    <div class="panel"><h2>Pedidos recientes</h2><div id="recentOrders"></div></div>
+    <div class="panel"><h2>Productos con stock bajo</h2><div id="lowStock"></div></div>
+  </div>
+</section>
+
+<section id="venta" class="view">
+  <h1>Venta LIVE</h1><div class="subtitle">Captura el pedido mientras haces el LIVE. El botón Guardar pedido registra todo en un solo paso.</div>
+  <div class="panel">
+    <div class="formgrid">
+      <div class="field"><label>N.º de pedido</label><input id="orderId" readonly placeholder="TT-00001"><div class="note">Generado automáticamente</div></div>
+      <div class="field"><label>Cliente</label><select id="orderClient"></select></div>
+      <div class="field"><label>Fecha</label><input id="orderDate" type="date"></div>
+      <div class="field"><label>Estado</label><select id="orderStatus"><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select></div>
+    </div>
+    <div class="quick" style="margin:12px 0"><button class="btn" onclick="newClient()">+ Cliente</button><button class="btn" onclick="addLine()">+ Producto</button><button class="btn" onclick="clearOrder()">Limpiar</button></div>
+    <div class="tablewrap"><table class="order-lines"><thead><tr><th style="min-width:260px">Producto</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th></tr></thead><tbody id="lineBody"></tbody></table></div>
+    <div class="formgrid" style="margin-top:14px">
+      <div class="field"><label>Abono recibido</label><input id="initialPayment" type="number" min="0" value="0"></div>
+      <div class="field"><label>Medio de pago</label><select id="initialMethod"><option>Nequi</option><option>Daviplata</option><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
+      <div class="field"><label>Referencia</label><input id="initialRef" placeholder="Opcional"></div>
+      <div class="field"><label>Notas</label><input id="orderNotes" placeholder="Opcional"></div>
+    </div>
+    <div class="order-total"><span>Total: <b id="liveTotal">$0</b></span><span>Saldo: <b id="liveBalance">$0</b></span></div>
+    <div class="statusbar"><span id="editMode">Nuevo pedido</span><button class="save" onclick="saveOrder()">Guardar pedido</button></div>
+  </div>
+</section>
+
+<section id="pedidos" class="view">
+  <h1>Pedidos</h1><div class="subtitle">Busca, edita pedidos y registra nuevos abonos.</div>
+  <div class="toolbar"><input id="orderSearch" placeholder="Buscar pedido o cliente" oninput="renderOrders()"><select id="orderFilter" onchange="renderOrders()"><option value="">Todos</option><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select></div>
+  <div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+</section>
+
+<section id="inventario" class="view">
+  <h1>Inventario</h1><div class="subtitle">El stock vendido se calcula automáticamente a partir de los pedidos guardados.</div>
+  <div class="toolbar"><button class="btn primary" onclick="openProductModal()">+ Agregar producto / stock</button><input id="invSearch" placeholder="Buscar producto" oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">Todos</option><option>EN STOCK</option><option>REPOSICIÓN</option><option>AGOTADO</option></select></div>
+  <div class="tablewrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Stock inicial</th><th>Vendido</th><th>Stock actual</th><th>Estado</th><th>Precio venta</th><th>Margen %</th><th>Fecha compra</th><th>Días</th><th>Acciones</th></tr></thead><tbody id="invBody"></tbody></table></div>
+</section>
+
+<section id="clientes" class="view">
+  <h1>Clientes</h1><div class="subtitle">Base de clientes editable.</div>
+  <div class="toolbar"><input id="clientSearch" placeholder="Buscar cliente" oninput="renderClients()"><button class="btn primary" onclick="newClient()">+ Nuevo cliente</button></div>
+  <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>WhatsApp</th><th>TikTok</th><th>Dirección</th><th>Estado</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+</section>
+
+<section id="abonos" class="view">
+  <h1>Abonos y pagos</h1><div class="subtitle">Registra pagos adicionales sobre cualquier pedido.</div>
+  <div class="panel">
+    <div class="formgrid">
+      <div class="field"><label>Pedido</label><select id="payOrder"></select></div>
+      <div class="field"><label>Valor</label><input id="payAmount" type="number" min="0"></div>
+      <div class="field"><label>Medio</label><select id="payMethod"><option>Nequi</option><option>Daviplata</option><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
+      <div class="field"><label>Referencia</label><input id="payRef"></div>
+    </div>
+    <div class="quick" style="margin-top:12px"><button class="btn primary" onclick="addPayment()">Registrar abono</button></div>
+  </div>
+  <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Fecha</th><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Medio</th><th>Referencia</th></tr></thead><tbody id="paymentsBody"></tbody></table></div>
+</section>
+
+<section id="facturacion" class="view">
+  <h1>Facturación</h1><div class="subtitle">Personaliza los datos y el logo que aparecerán en las facturas generadas para cada pedido.</div>
+  <div class="panel">
+    <div class="formgrid">
+      <div class="field"><label>Nombre de la empresa</label><input id="invEmpresa" placeholder="Pandala Kawaii"></div>
+      <div class="field"><label>NIT / Documento</label><input id="invNit" placeholder="Opcional"></div>
+      <div class="field"><label>Teléfono</label><input id="invTelefono" placeholder="Opcional"></div>
+      <div class="field"><label>Email</label><input id="invEmail" placeholder="Opcional"></div>
+      <div class="field" style="grid-column:span 2"><label>Dirección</label><input id="invDireccion" placeholder="Opcional"></div>
+      <div class="field" style="grid-column:span 2"><label>Mensaje al pie de la factura</label><input id="invMensaje" placeholder="Ej: ¡Gracias por tu compra! — Pandala Kawaii"></div>
+      <div class="field"><label>Logo</label><input id="invLogoFile" type="file" accept="image/*" onchange="handleLogoUpload(event)"></div>
+      <div class="field"><label>Vista previa del logo</label><div style="border:1px solid #ccd4cc;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;min-height:60px;background:#fafcfa"><img id="invLogoPreview" src="" alt="" style="max-height:60px;max-width:100%;display:none"></div></div>
+    </div>
+    <div class="quick" style="margin-top:14px"><button class="btn primary" onclick="saveInvoiceConfig()">Guardar datos de factura</button><button class="btn danger" onclick="clearInvoiceLogo()">Quitar logo</button></div>
+    <div class="note" style="margin-top:10px">Estos datos se usarán al generar cualquier factura desde la pestaña Pedidos, mediante el botón "Generar Factura".</div>
+  </div>
+</section>
+</main>
+
+<script>
+const KEY='gestorVentasLiveTikTok_v2';
+let state = JSON.parse(localStorage.getItem(KEY)||'null') || {
+  inventory: [], clients: [], orders: [], payments: [],
+  invoiceConfig: {empresa:'Pandala Kawaii', logo:'', nit:'', telefono:'', email:'', direccion:'', mensaje:'¡Gracias por tu compra! — Pandala Kawaii'}
+};
+if(!state.invoiceConfig) state.invoiceConfig={empresa:'Pandala Kawaii', logo:'', nit:'', telefono:'', email:'', direccion:'', mensaje:'¡Gracias por tu compra! — Pandala Kawaii'};
+let editingOrder=null;
+
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0);
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+function saveAll(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  refresh();
+  alert('Datos guardados en este navegador.');
+}
+function refresh(){
+  renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
+}
+function navInit(){
+  const items=[['dashboard','Dashboard'],['venta','Venta LIVE'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación']];
+  $('nav').innerHTML=items.map(([id,t],i)=>`<button class="${i===0?'active':''}" data-view="${id}">${t}</button>`).join('');
+  document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+}
+function showView(id){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.view===id));
+  $(id).classList.add('active');
+  refresh();
+}
+function fillSelects(){
+  const c=$('orderClient'), current=c.value;
+  c.innerHTML='<option value="">Seleccionar cliente…</option>'+state.clients.filter(x=>x.estado!=='Inactivo').map(x=>`<option>${esc(x.nombre)}</option>`).join('');
+  if(state.clients.some(x=>x.nombre===current)) c.value=current;
+  const po=$('payOrder'), pc=po.value;
+  po.innerHTML='<option value="">Seleccionar pedido…</option>'+state.orders.map(o=>`<option value="${esc(o.id)}">${esc(o.id)} — ${esc(o.cliente)} — ${money(orderTotal(o))}</option>`).join('');
+  if(state.orders.some(x=>x.id===pc)) po.value=pc;
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function orderTotal(o){return (o.lineas||[]).reduce((a,l)=>a+(Number(l.precio)||0)*(Number(l.cantidad)||0),0)}
+function paid(o){return state.payments.filter(p=>p.pedido===o.id).reduce((a,p)=>a+Number(p.valor||0),0)}
+function stockSold(product){return state.orders.filter(o=>o.estado!=='Cancelado').flatMap(o=>o.lineas||[]).filter(l=>l.producto===product).reduce((a,l)=>a+Number(l.cantidad||0),0)}
+function stockInfo(p){const sold=stockSold(p.producto), current=Number(p.stock||0)-sold; const status=current<=0?'AGOTADO':current<=2?'REPOSICIÓN':'EN STOCK'; return {sold,current,status}}
+function daysSince(dateStr){if(!dateStr)return null; const d=new Date(dateStr+'T00:00:00'); if(isNaN(d))return null; return Math.floor((Date.now()-d.getTime())/86400000)}
+function margenPct(p){const precio=Number(p.precio)||0; if(precio<=0)return 0; const costoTotal=(Number(p.costo)||0)+(Number(p.envio)||0); return ((precio-costoTotal)/precio)*100}
+function inventoryValueStats(){
+  let total=0, over90=0;
+  state.inventory.forEach(p=>{
+    const info=stockInfo(p);
+    const qty=Math.max(0,info.current);
+    const value=((Number(p.costo)||0)+(Number(p.envio)||0))*qty;
+    total+=value;
+    const days=daysSince(p.fechaCompra);
+    if(days!==null && days>90) over90+=value;
+  });
+  const pct= total>0 ? (over90/total*100) : 0;
+  return {total, over90, pct};
+}
+function renderDashboard(){
+  const total=state.orders.reduce((s,o)=>s+orderTotal(o),0);
+  const ab=state.payments.reduce((s,p)=>s+(Number(p.valor)||0),0);
+  $('mVentas').textContent=money(total);$('mAbonos').textContent=money(ab);$('mSaldo').textContent=money(Math.max(0,total-ab));
+  $('mAbiertos').textContent=state.orders.filter(o=>!['Pagado','Entregado','Cancelado'].includes(o.estado)).length;
+  $('mStock').textContent=state.inventory.filter(p=>stockInfo(p).status!=='EN STOCK').length;
+  const inv=inventoryValueStats();
+  $('mInvTotal').textContent=money(inv.total);
+  $('mInv90').textContent=money(inv.over90);
+  $('mInv90Pct').textContent=inv.pct.toFixed(1)+'%';
+  const arr=[...state.orders].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,10);
+  $('recentOrders').innerHTML=arr.length?`<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Saldo</th></tr></thead><tbody>${arr.map(o=>`<tr><td>${esc(o.id)}</td><td>${esc(o.fecha)}</td><td>${esc(o.cliente)}</td><td>${money(orderTotal(o))}</td><td>${money(Math.max(0,orderTotal(o)-paid(o)))}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay pedidos.</div>';
+  const low=state.inventory.map(p=>({...p,...stockInfo(p)})).filter(p=>p.status!=='EN STOCK');
+  $('lowStock').innerHTML=low.length?low.map(p=>`<div class="statusbar"><span>${esc(p.producto)}</span>${pill(p.status)} <b>${p.current}</b></div>`).join(''):'<div class="empty">No hay productos con stock bajo.</div>';
+  fillDashboardClients();
+}
+function fillDashboardClients(){
+  const s=$('dashboardClient'); if(!s)return;
+  const current=s.value;
+  s.innerHTML='<option value="">Seleccionar cliente…</option>'+state.clients.map(c=>`<option value="${esc(c.nombre)}">${esc(c.nombre)}</option>`).join('');
+  if(state.clients.some(c=>c.nombre===current))s.value=current;
+}
+function renderClientOrders(){
+  const box=$('clientOrders'); if(!box)return;
+  const client=$('dashboardClient')?.value||'';
+  if(!client){box.innerHTML='<div class="empty">Selecciona un cliente para ver sus pedidos.</div>';return}
+  const arr=state.orders.filter(o=>o.cliente===client).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))||String(b.id).localeCompare(String(a.id)));
+  box.innerHTML=arr.length?`<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Fecha</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${arr.map(o=>{
+    const t=orderTotal(o),p=paid(o);
+    return `<tr><td>${esc(o.id)}</td><td>${esc(o.fecha)}</td><td>${money(t)}</td><td>${money(p)}</td><td>${money(Math.max(0,t-p))}</td><td>${pill(o.estado)}</td><td class="action-row"><button class="btn" onclick="editOrder('${js(o.id)}')">Modificar</button><button class="btn danger" onclick="deleteOrder('${js(o.id)}')">Eliminar</button></td></tr>`;
+  }).join('')}</tbody></table></div>`:'<div class="empty">Este cliente no tiene pedidos.</div>';
+}
+function deleteOrder(id){
+  const o=state.orders.find(x=>x.id===id); if(!o)return;
+  if(!confirm(`¿Confirmas que deseas eliminar el pedido ${o.id} de ${o.cliente}? Esta acción eliminará también sus abonos registrados.`))return;
+  state.orders=state.orders.filter(x=>x.id!==id);
+  state.payments=state.payments.filter(p=>p.pedido!==id);
+  localStorage.setItem(KEY,JSON.stringify(state));
+  refresh();
+  alert('Pedido eliminado.');
+}
+function pill(s){let c=s==='Pagado'||s==='Entregado'||s==='EN STOCK'?'ok':s==='Cancelado'||s==='AGOTADO'?'danger':'warn';return `<span class="pill ${c}">${esc(s)}</span>`}
+function renderOrders(){
+  const q=($('orderSearch')?.value||'').toLowerCase(), f=$('orderFilter')?.value||'';
+  const arr=state.orders.filter(o=>(!q||o.id.toLowerCase().includes(q)||o.cliente.toLowerCase().includes(q))&&(!f||o.estado===f)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  $('ordersBody').innerHTML=arr.length?arr.map(o=>{let t=orderTotal(o),p=paid(o);return `<tr><td>${esc(o.id)}</td><td>${esc(o.fecha)}</td><td>${esc(o.cliente)}</td><td>${money(t)}</td><td>${money(p)}</td><td>${money(Math.max(0,t-p))}</td><td>${pill(o.estado)}</td><td class="action-row"><button class="btn" onclick="editOrder('${js(o.id)}')">Editar</button><button class="btn" onclick="choosePayment('${js(o.id)}')">Abono</button><button class="btn primary" onclick="generateInvoice('${js(o.id)}')">Generar Factura</button></td></tr>`}).join(''):'<tr><td colspan="8" class="empty">No hay pedidos.</td></tr>';
+}
+function js(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function renderInventory(){
+  const q=($('invSearch')?.value||'').toLowerCase(), f=$('invFilter')?.value||'';
+  const arr=state.inventory.map(p=>({...p,...stockInfo(p)})).filter(p=>(!q||p.producto.toLowerCase().includes(q))&&(!f||p.status===f));
+  $('invBody').innerHTML=arr.length?arr.map(p=>{
+    const days=daysSince(p.fechaCompra);
+    const diasTxt=days===null?'—':(days+' d'+(days>90?' ⚠':''));
+    return `<tr><td>${esc(p.producto)}</td><td>${esc(p.categoria)}</td><td>${money(p.costo)}</td><td>${money(p.envio)}</td><td>${p.stock}</td><td>${p.sold}</td><td>${p.current}</td><td>${pill(p.status)}</td><td>${money(p.precio)}</td><td>${margenPct(p).toFixed(1)}%</td><td>${esc(p.fechaCompra||'—')}</td><td>${diasTxt}</td><td class="action-row"><button class="btn" onclick="openEditProduct('${js(p.producto)}')">Modificar</button><button class="btn danger" onclick="deleteProduct('${js(p.producto)}')">Eliminar</button></td></tr>`;
+  }).join(''):'<tr><td colspan="13" class="empty">No hay productos en el inventario.</td></tr>';
+}
+function deleteProduct(name){
+  if(!confirm(`¿Confirmas que deseas eliminar el producto "${name}" del inventario?`))return;
+  state.inventory=state.inventory.filter(p=>p.producto!==name);
+  localStorage.setItem(KEY,JSON.stringify(state));
+  refresh();
+  alert('Producto eliminado.');
+}
+function renderClients(){
+  const q=($('clientSearch')?.value||'').toLowerCase();
+  const arr=state.clients.filter(c=>!q||[c.nombre,c.telefono,c.tiktok].join(' ').toLowerCase().includes(q));
+  $('clientsBody').innerHTML=arr.map((c,i)=>`<tr><td>${esc(c.nombre)}</td><td>${esc(c.telefono)}</td><td>${esc(c.tiktok)}</td><td>${esc(c.direccion)}</td><td>${pill(c.estado)}</td><td><button class="btn" onclick="editClient('${js(c.nombre)}')">Editar</button></td></tr>`).join('');
+}
+function renderPayments(){
+  const arr=[...state.payments].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  $('paymentsBody').innerHTML=arr.length?arr.map(p=>`<tr><td>${esc(p.fecha)}</td><td>${esc(p.pedido)}</td><td>${esc(p.cliente)}</td><td>${money(p.valor)}</td><td>${esc(p.medio)}</td><td>${esc(p.referencia)}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">No hay abonos registrados.</td></tr>';
+}
+function addLine(product='',qty=1){
+  const tr=document.createElement('tr');
+  const opts=state.inventory.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)} — ${money(p.precio)}</option>`).join('');
+  tr.innerHTML=`<td><select class="lineProduct" onchange="lineChanged(this)"><option value="">Seleccionar…</option>${opts}</select></td><td style="width:90px"><input class="lineQty" type="number" min="1" value="${qty}" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="linePrice" type="number" min="0" value="0" oninput="updateLiveTotals()"></td><td class="lineTotal num">$0</td><td><button class="btn danger" onclick="this.closest('tr').remove();updateLiveTotals()">×</button></td>`;
+  $('lineBody').appendChild(tr);
+  if(product){tr.querySelector('.lineProduct').value=product;lineChanged(tr.querySelector('.lineProduct'))}
+  updateLiveTotals();
+}
+function lineChanged(sel){const p=state.inventory.find(x=>x.producto===sel.value);const tr=sel.closest('tr');if(p)tr.querySelector('.linePrice').value=p.precio;updateLiveTotals()}
+function updateLiveTotals(){
+  let t=0;
+  document.querySelectorAll('#lineBody tr').forEach(tr=>{const q=Number(tr.querySelector('.lineQty').value)||0,p=Number(tr.querySelector('.linePrice').value)||0,x=q*p;t+=x;tr.querySelector('.lineTotal').textContent=money(x)});
+  const ab=Number($('initialPayment').value)||0;$('liveTotal').textContent=money(t);$('liveBalance').textContent=money(Math.max(0,t-ab));
+}
+function nextOrderId(){
+  let max=0;
+  state.orders.forEach(o=>{const m=String(o.id||'').match(/^TT-(\d+)$/i);if(m)max=Math.max(max,Number(m[1]))});
+  return 'TT-'+String(max+1).padStart(5,'0');
+}
+function clearOrder(){
+  editingOrder=null;$('orderId').value=nextOrderId();$('orderClient').value='';$('orderDate').value=today();$('orderStatus').value='Pendiente';$('initialPayment').value=0;$('initialMethod').value='Nequi';$('initialRef').value='';$('orderNotes').value='';$('lineBody').innerHTML='';$('editMode').textContent='Nuevo pedido';addLine();
+}
+function editOrder(id){
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  editingOrder=id;showView('venta');$('orderId').value=o.id;$('orderClient').value=o.cliente;$('orderDate').value=o.fecha;$('orderStatus').value=o.estado;$('orderNotes').value=o.notas||'';$('initialPayment').value=0;$('initialRef').value='';$('lineBody').innerHTML='';(o.lineas||[]).forEach(l=>addLine(l.producto,l.cantidad));document.querySelectorAll('#lineBody tr').forEach((tr,i)=>tr.querySelector('.linePrice').value=o.lineas[i].precio);$('editMode').textContent='Editando pedido '+id;updateLiveTotals();
+}
+function saveOrder(){
+  const id=$('orderId').value.trim()||nextOrderId(),cliente=$('orderClient').value,fecha=$('orderDate').value||today();
+  if(!id||!cliente){alert('Indica el número de pedido y el cliente.');return}
+  const lineas=[...document.querySelectorAll('#lineBody tr')].map(tr=>({producto:tr.querySelector('.lineProduct').value,cantidad:Number(tr.querySelector('.lineQty').value)||0,precio:Number(tr.querySelector('.linePrice').value)||0})).filter(l=>l.producto&&l.cantidad>0);
+  if(!lineas.length){alert('Agrega al menos un producto.');return}
+  const old=state.orders.find(o=>o.id===id);
+  const o={id,cliente,fecha,estado:$('orderStatus').value,notas:$('orderNotes').value,lineas};
+  if(old){Object.assign(old,o)}else{state.orders.push(o)}
+  const initial=Number($('initialPayment').value)||0;
+  if(initial>0)state.payments.push({id:uid(),pedido:id,fecha,cliente,valor:initial,medio:$('initialMethod').value,referencia:$('initialRef').value});
+  localStorage.setItem(KEY,JSON.stringify(state));alert(old?'Pedido actualizado.':'Pedido guardado.');clearOrder();refresh();showView('pedidos');
+}
+function choosePayment(id){showView('abonos');$('payOrder').value=id}
+function addPayment(){
+  const id=$('payOrder').value, amount=Number($('payAmount').value)||0;
+  const o=state.orders.find(x=>x.id===id);if(!o||amount<=0){alert('Selecciona un pedido e indica un valor válido.');return}
+  state.payments.push({id:uid(),pedido:id,fecha:today(),cliente:o.cliente,valor:amount,medio:$('payMethod').value,referencia:$('payRef').value});
+  const t=orderTotal(o),p=paid(o); if(p>=t)o.estado='Pagado';
+  localStorage.setItem(KEY,JSON.stringify(state));$('payAmount').value='';$('payRef').value='';alert('Abono registrado.');refresh();
+}
+function newClient(){
+  const nombre=prompt('Nombre del cliente:');if(!nombre)return;
+  if(state.clients.some(c=>c.nombre.toLowerCase()===nombre.trim().toLowerCase())){alert('Ese cliente ya existe.');return}
+  const telefono=prompt('WhatsApp / teléfono:')||'',tiktok=prompt('Usuario TikTok:')||'';
+  state.clients.push({nombre:nombre.trim(),telefono,tiktok,direccion:'',notas:'',estado:'Activo'});localStorage.setItem(KEY,JSON.stringify(state));refresh();$('orderClient').value=nombre.trim();
+}
+function editClient(name){
+  const c=state.clients.find(x=>x.nombre===name);if(!c)return;
+  const telefono=prompt('WhatsApp / teléfono:',c.telefono)||c.telefono;
+  const tiktok=prompt('Usuario TikTok:',c.tiktok)||c.tiktok;
+  const direccion=prompt('Dirección:',c.direccion)||c.direccion;
+  c.telefono=telefono;c.tiktok=tiktok;c.direccion=direccion;localStorage.setItem(KEY,JSON.stringify(state));refresh();
+}
+function openProductModal(){
+  $('productAction').value='new';$('existingProductField').style.display='none';
+  $('newProductName').disabled=false;$('newProductCategory').disabled=false;$('newProductCost').disabled=false;$('newProductShipping').disabled=false;$('newProductPrice').disabled=false;$('newProductMin').disabled=false;$('newProductDate').disabled=false;
+  $('newProductName').value='';$('newProductCategory').value='';$('newProductStock').value=0;$('newProductCost').value=0;$('newProductShipping').value=0;$('newProductPrice').value=0;$('newProductMin').value=1;$('newProductDate').value=today();
+  $('existingProduct').innerHTML=state.inventory.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)}</option>`).join('');
+  $('productModal').classList.add('open');
+}
+function closeProductModal(){$('productModal').classList.remove('open')}
+function toggleProductFields(){
+  const stockMode=$('productAction').value==='stock';
+  $('existingProductField').style.display=stockMode?'flex':'none';
+  $('newProductName').disabled=stockMode;$('newProductCategory').disabled=stockMode;$('newProductCost').disabled=stockMode;$('newProductShipping').disabled=stockMode;$('newProductPrice').disabled=stockMode;$('newProductMin').disabled=stockMode;$('newProductDate').disabled=stockMode;
+}
+function saveProductModal(){
+  const qty=Number($('newProductStock').value)||0;
+  if(qty<0){alert('La cantidad no puede ser negativa.');return}
+  if($('productAction').value==='stock'){
+    const name=$('existingProduct').value,p=state.inventory.find(x=>x.producto===name);
+    if(!p){alert('Selecciona un producto.');return}
+    p.stock=(Number(p.stock)||0)+qty;
+    localStorage.setItem(KEY,JSON.stringify(state));closeProductModal();refresh();alert(`Se adicionaron ${qty} unidades a ${name}.`);return;
+  }
+  const name=$('newProductName').value.trim();
+  if(!name){alert('Indica el nombre del producto.');return}
+  if(state.inventory.some(p=>p.producto.toLowerCase()===name.toLowerCase())){alert('Ese producto ya existe. Usa "Adicionar stock".');return}
+  state.inventory.push({
+    producto:name,categoria:$('newProductCategory').value.trim(),costo:Number($('newProductCost').value)||0,
+    envio:Number($('newProductShipping').value)||0,stock:qty,sold:0,precio:Number($('newProductPrice').value)||0,
+    minimo:Number($('newProductMin').value)||0,fechaCompra:$('newProductDate').value||today()
+  });
+  localStorage.setItem(KEY,JSON.stringify(state));closeProductModal();refresh();alert('Producto creado correctamente.');
+}
+function openEditProduct(name){
+  const p=state.inventory.find(x=>x.producto===name);if(!p)return;
+  $('editProductOriginalName').value=p.producto;
+  $('editProductName').value=p.producto;
+  $('editProductCategory').value=p.categoria||'';
+  $('editProductStock').value=p.stock||0;
+  $('editProductCost').value=p.costo||0;
+  $('editProductShipping').value=p.envio||0;
+  $('editProductPrice').value=p.precio||0;
+  $('editProductDate').value=p.fechaCompra||today();
+  $('editProductModal').classList.add('open');
+}
+function closeEditProduct(){$('editProductModal').classList.remove('open')}
+function saveEditProduct(){
+  const original=$('editProductOriginalName').value;
+  const p=state.inventory.find(x=>x.producto===original);if(!p)return;
+  const newName=$('editProductName').value.trim();
+  if(!newName){alert('Indica el nombre del producto.');return}
+  if(newName.toLowerCase()!==original.toLowerCase() && state.inventory.some(x=>x.producto.toLowerCase()===newName.toLowerCase())){alert('Ya existe otro producto con ese nombre.');return}
+  const newStock=Number($('editProductStock').value)||0;
+  if(newStock<0){alert('La cantidad no puede ser negativa.');return}
+  if(newName!==original){
+    state.orders.forEach(o=>(o.lineas||[]).forEach(l=>{if(l.producto===original)l.producto=newName}));
+  }
+  p.producto=newName;
+  p.categoria=$('editProductCategory').value.trim();
+  p.stock=newStock;
+  p.costo=Number($('editProductCost').value)||0;
+  p.envio=Number($('editProductShipping').value)||0;
+  p.precio=Number($('editProductPrice').value)||0;
+  p.fechaCompra=$('editProductDate').value||p.fechaCompra;
+  localStorage.setItem(KEY,JSON.stringify(state));
+  closeEditProduct();refresh();alert('Producto actualizado.');
+}
+function loadDefaults(){
+  $('orderDate').value=today();$('orderId').value=nextOrderId();$('lineBody').innerHTML='';addLine();
+  $('initialPayment').addEventListener('input',updateLiveTotals);
+}
+function loadInvoiceConfig(){
+  const c=state.invoiceConfig;
+  $('invEmpresa').value=c.empresa||'';$('invNit').value=c.nit||'';$('invTelefono').value=c.telefono||'';
+  $('invEmail').value=c.email||'';$('invDireccion').value=c.direccion||'';$('invMensaje').value=c.mensaje||'';
+  if(c.logo){$('invLogoPreview').src=c.logo;$('invLogoPreview').style.display='inline-block'}else{$('invLogoPreview').style.display='none'}
+}
+function handleLogoUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{state.invoiceConfig.logo=ev.target.result;$('invLogoPreview').src=ev.target.result;$('invLogoPreview').style.display='inline-block';localStorage.setItem(KEY,JSON.stringify(state))};
+  reader.readAsDataURL(file);
+}
+function clearInvoiceLogo(){
+  state.invoiceConfig.logo='';$('invLogoPreview').src='';$('invLogoPreview').style.display='none';$('invLogoFile').value='';
+  localStorage.setItem(KEY,JSON.stringify(state));
+}
+function saveInvoiceConfig(){
+  state.invoiceConfig={
+    empresa:$('invEmpresa').value.trim()||'Pandala Kawaii',
+    nit:$('invNit').value.trim(),
+    telefono:$('invTelefono').value.trim(),
+    email:$('invEmail').value.trim(),
+    direccion:$('invDireccion').value.trim(),
+    mensaje:$('invMensaje').value.trim(),
+    logo:state.invoiceConfig.logo||''
+  };
+  localStorage.setItem(KEY,JSON.stringify(state));
+  alert('Datos de factura guardados.');
+}
+function generateInvoice(orderId){
+  const o=state.orders.find(x=>x.id===orderId);if(!o){alert('Pedido no encontrado.');return}
+  const cliente=state.clients.find(c=>c.nombre===o.cliente)||{};
+  const cfg=state.invoiceConfig||{};
+  const lineas=o.lineas||[];
+  const total=orderTotal(o);
+  const pagos=state.payments.filter(p=>p.pedido===o.id);
+  const totalPagado=pagos.reduce((a,p)=>a+Number(p.valor||0),0);
+  const saldo=Math.max(0,total-totalPagado);
+  const filasProductos=lineas.map(l=>`<tr><td>${esc(l.producto)}</td><td style="text-align:center">${l.cantidad}</td><td style="text-align:right">${money(l.precio)}</td><td style="text-align:right">${money(l.precio*l.cantidad)}</td></tr>`).join('');
+  const filasAbonos=pagos.length?pagos.map(p=>`<tr><td>${esc(p.fecha)}</td><td>${esc(p.medio)}</td><td>${esc(p.referencia||'—')}</td><td style="text-align:right">${money(p.valor)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#5c6a5f">Sin abonos registrados</td></tr>';
+  const logoHtml=cfg.logo?`<img src="${cfg.logo}" style="max-height:70px;max-width:220px">`:`<div style="font-weight:800;font-size:20px;color:#3f7d4a">${esc(cfg.empresa||'Pandala Kawaii')}</div>`;
+  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Factura ${esc(o.id)}</title>
+  <style>
+  *{box-sizing:border-box}body{font-family:Inter,system-ui,Arial,sans-serif;color:#161616;margin:0;padding:32px;background:#fff}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #3f7d4a;padding-bottom:16px;margin-bottom:18px}
+  .empresa-info{font-size:12px;color:#5c6a5f;margin-top:6px;line-height:1.5}
+  .factura-title{text-align:right}.factura-title h1{margin:0;color:#3f7d4a;font-size:22px}.factura-title div{font-size:13px;color:#5c6a5f;margin-top:4px}
+  .datos{display:flex;justify-content:space-between;gap:24px;margin-bottom:20px}
+  .datos .box{flex:1;border:1px solid #e3e7e3;border-radius:8px;padding:12px}
+  .datos .box h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#5c6a5f}
+  .datos .box div{font-size:13px;margin-bottom:3px}
+  table{width:100%;border-collapse:collapse;margin-bottom:18px}
+  th{background:#e9f4ea;color:#2f5f38;font-size:11px;text-transform:uppercase;padding:8px 10px;text-align:left}
+  td{padding:8px 10px;border-bottom:1px solid #eef1ee;font-size:13px}
+  .totales{display:flex;justify-content:flex-end}
+  .totales table{width:280px}
+  .totales td{font-size:13px}
+  .totales tr.final td{font-size:16px;font-weight:800;color:#161616;border-top:2px solid #3f7d4a}
+  .totales tr.saldo td{color:#c0392b;font-weight:800}
+  .footer{margin-top:26px;text-align:center;font-size:12px;color:#5c6a5f;border-top:1px solid #e3e7e3;padding-top:12px}
+  .printbtn{margin-bottom:18px}
+  .printbtn button{background:#3f7d4a;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
+  @media print{.printbtn{display:none}}
+  </style></head><body>
+  <div class="printbtn"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
+  <div class="top">
+    <div>${logoHtml}<div class="empresa-info">${esc(cfg.direccion||'')}${cfg.direccion?'<br>':''}${cfg.telefono?('Tel: '+esc(cfg.telefono)+' '):''}${cfg.email?('· '+esc(cfg.email)):''}${cfg.nit?('<br>NIT/Doc: '+esc(cfg.nit)):''}</div></div>
+    <div class="factura-title"><h1>FACTURA</h1><div>N.º ${esc(o.id)}</div><div>Fecha: ${esc(o.fecha)}</div><div>Estado: ${esc(o.estado)}</div></div>
+  </div>
+  <div class="datos">
+    <div class="box"><h3>Cliente</h3><div><b>${esc(o.cliente)}</b></div><div>${esc(cliente.telefono||'')}</div><div>${esc(cliente.tiktok||'')}</div><div>${esc(cliente.direccion||'')}</div></div>
+  </div>
+  <table><thead><tr><th>Producto</th><th style="text-align:center">Cantidad</th><th style="text-align:right">Precio unitario</th><th style="text-align:right">Total</th></tr></thead><tbody>${filasProductos}</tbody></table>
+  <div class="totales"><table>
+    <tr><td>Total pedido</td><td style="text-align:right">${money(total)}</td></tr>
+    <tr><td>Total abonado</td><td style="text-align:right">${money(totalPagado)}</td></tr>
+    <tr class="saldo"><td>Saldo pendiente</td><td style="text-align:right">${money(saldo)}</td></tr>
+  </table></div>
+  <h3 style="font-size:13px;color:#5c6a5f;text-transform:uppercase;letter-spacing:.05em">Historial de abonos</h3>
+  <table><thead><tr><th>Fecha</th><th>Medio</th><th>Referencia</th><th style="text-align:right">Valor</th></tr></thead><tbody>${filasAbonos}</tbody></table>
+  <div class="footer">${esc(cfg.mensaje||'')}</div>
+  </body></html>`;
+  const win=window.open('','_blank');
+  if(!win){alert('El navegador bloqueó la ventana emergente. Habilítala para generar la factura.');return}
+  win.document.open();win.document.write(html);win.document.close();
+}
+navInit();loadDefaults();refresh();loadInvoiceConfig();
+</script>
+
+<div id="productModal" class="modal-backdrop" onclick="if(event.target===this)closeProductModal()">
+  <div class="modal">
+    <h2>Agregar producto o adicionar stock</h2>
+    <div class="formgrid">
+      <div class="field"><label>Acción</label><select id="productAction" onchange="toggleProductFields()"><option value="new">Crear producto nuevo</option><option value="stock">Adicionar stock</option></select></div>
+      <div class="field" id="existingProductField" style="display:none"><label>Producto existente</label><select id="existingProduct"></select></div>
+      <div class="field"><label>Producto</label><input id="newProductName" placeholder="Nombre del producto"></div>
+      <div class="field"><label>Categoría</label><input id="newProductCategory" placeholder="Categoría"></div>
+      <div class="field"><label>Cantidad a agregar</label><input id="newProductStock" type="number" min="0" value="0"></div>
+      <div class="field"><label>Costo</label><input id="newProductCost" type="number" min="0" value="0"></div>
+      <div class="field"><label>Envío / costo adicional</label><input id="newProductShipping" type="number" min="0" value="0"></div>
+      <div class="field"><label>Precio de venta</label><input id="newProductPrice" type="number" min="0" value="0"></div>
+      <div class="field"><label>Mínimo de reposición</label><input id="newProductMin" type="number" min="0" value="1"></div>
+      <div class="field"><label>Fecha de compra</label><input id="newProductDate" type="date"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeProductModal()">Cancelar</button><button class="btn primary" onclick="saveProductModal()">Guardar</button></div>
+  </div>
+</div>
+
+<div id="editProductModal" class="modal-backdrop" onclick="if(event.target===this)closeEditProduct()">
+  <div class="modal">
+    <h2>Modificar producto</h2>
+    <input type="hidden" id="editProductOriginalName">
+    <div class="formgrid">
+      <div class="field"><label>Producto</label><input id="editProductName"></div>
+      <div class="field"><label>Categoría</label><input id="editProductCategory"></div>
+      <div class="field"><label>Cantidad (stock)</label><input id="editProductStock" type="number" min="0"></div>
+      <div class="field"><label>Costo</label><input id="editProductCost" type="number" min="0"></div>
+      <div class="field"><label>Envío / costo adicional</label><input id="editProductShipping" type="number" min="0"></div>
+      <div class="field"><label>Precio de venta</label><input id="editProductPrice" type="number" min="0"></div>
+      <div class="field"><label>Fecha de compra</label><input id="editProductDate" type="date"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeEditProduct()">Cancelar</button><button class="btn primary" onclick="saveEditProduct()">Guardar cambios</button></div>
+  </div>
+</div>
+</body>
+</html>
