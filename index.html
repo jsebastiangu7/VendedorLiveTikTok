@@ -34,6 +34,8 @@ table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}.tablew
 </style>
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 <header>
@@ -121,6 +123,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}.tablew
   <div class="panel">
     <div class="formgrid">
       <div class="field"><label>Pedido</label><select id="payOrder"></select></div>
+      <div class="field"><label>Fecha</label><input id="payDate" type="date"></div>
       <div class="field"><label>Valor</label><input id="payAmount" type="number" min="0"></div>
       <div class="field"><label>Medio</label><select id="payMethod"><option>Nequi</option><option>Daviplata</option><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
       <div class="field"><label>Referencia</label><input id="payRef"></div>
@@ -338,9 +341,10 @@ function choosePayment(id){showView('abonos');$('payOrder').value=id}
 function addPayment(){
   const id=$('payOrder').value, amount=Number($('payAmount').value)||0;
   const o=state.orders.find(x=>x.id===id);if(!o||amount<=0){alert('Selecciona un pedido e indica un valor válido.');return}
-  state.payments.push({id:uid(),pedido:id,fecha:today(),cliente:o.cliente,valor:amount,medio:$('payMethod').value,referencia:$('payRef').value});
+  const fecha=$('payDate').value||today();
+  state.payments.push({id:uid(),pedido:id,fecha,cliente:o.cliente,valor:amount,medio:$('payMethod').value,referencia:$('payRef').value});
   const t=orderTotal(o),p=paid(o); if(p>=t)o.estado='Pagado';
-  persist();$('payAmount').value='';$('payRef').value='';alert('Abono registrado.');refresh();
+  persist();$('payAmount').value='';$('payRef').value='';$('payDate').value=today();alert('Abono registrado.');refresh();
 }
 function newClient(){
   const nombre=prompt('Nombre del cliente:');if(!nombre)return;
@@ -424,6 +428,7 @@ function saveEditProduct(){
 function loadDefaults(){
   $('orderDate').value=today();$('orderId').value=nextOrderId();$('lineBody').innerHTML='';addLine();
   $('initialPayment').addEventListener('input',updateLiveTotals);
+  $('payDate').value=today();
 }
 function loadInvoiceConfig(){
   const c=state.invoiceConfig;
@@ -463,58 +468,102 @@ function generateInvoice(orderId){
   const pagos=state.payments.filter(p=>p.pedido===o.id);
   const totalPagado=pagos.reduce((a,p)=>a+Number(p.valor||0),0);
   const saldo=Math.max(0,total-totalPagado);
-  const filasProductos=lineas.map(l=>`<tr><td>${esc(l.producto)}</td><td style="text-align:center">${l.cantidad}</td><td style="text-align:right">${money(l.precio)}</td><td style="text-align:right">${money(l.precio*l.cantidad)}</td></tr>`).join('');
-  const filasAbonos=pagos.length?pagos.map(p=>`<tr><td>${esc(p.fecha)}</td><td>${esc(p.medio)}</td><td>${esc(p.referencia||'—')}</td><td style="text-align:right">${money(p.valor)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#5c6a5f">Sin abonos registrados</td></tr>';
-  const logoHtml=cfg.logo?`<img src="${cfg.logo}" style="max-height:70px;max-width:220px">`:`<div style="font-weight:800;font-size:20px;color:#3f7d4a">${esc(cfg.empresa||'Pandala Kawaii')}</div>`;
-  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Factura ${esc(o.id)}</title>
-  <style>
-  *{box-sizing:border-box}body{font-family:Inter,system-ui,Arial,sans-serif;color:#161616;margin:0;padding:32px;background:#fff}
-  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #3f7d4a;padding-bottom:16px;margin-bottom:18px}
-  .empresa-info{font-size:12px;color:#5c6a5f;margin-top:6px;line-height:1.5}
-  .factura-title{text-align:right}.factura-title h1{margin:0;color:#3f7d4a;font-size:22px}.factura-title div{font-size:13px;color:#5c6a5f;margin-top:4px}
-  .datos{display:flex;justify-content:space-between;gap:24px;margin-bottom:20px}
-  .datos .box{flex:1;border:1px solid #e3e7e3;border-radius:8px;padding:12px}
-  .datos .box h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#5c6a5f}
-  .datos .box div{font-size:13px;margin-bottom:3px}
-  table{width:100%;border-collapse:collapse;margin-bottom:18px}
-  th{background:#e9f4ea;color:#2f5f38;font-size:11px;text-transform:uppercase;padding:8px 10px;text-align:left}
-  td{padding:8px 10px;border-bottom:1px solid #eef1ee;font-size:13px}
-  .totales{display:flex;justify-content:flex-end}
-  .totales table{width:280px}
-  .totales td{font-size:13px}
-  .totales tr.final td{font-size:16px;font-weight:800;color:#161616;border-top:2px solid #3f7d4a}
-  .totales tr.saldo td{color:#c0392b;font-weight:800}
-  .footer{margin-top:26px;text-align:center;font-size:12px;color:#5c6a5f;border-top:1px solid #e3e7e3;padding-top:12px}
-  .printbtn{margin-bottom:18px}
-  .printbtn button{background:#3f7d4a;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer}
-  @media print{.printbtn{display:none}}
-  </style></head><body>
-  <div class="printbtn"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
-  <div class="top">
-    <div>${logoHtml}<div class="empresa-info">${esc(cfg.direccion||'')}${cfg.direccion?'<br>':''}${cfg.telefono?('Tel: '+esc(cfg.telefono)+' '):''}${cfg.email?('· '+esc(cfg.email)):''}${cfg.nit?('<br>NIT/Doc: '+esc(cfg.nit)):''}</div></div>
-    <div class="factura-title"><h1>FACTURA</h1><div>N.º ${esc(o.id)}</div><div>Fecha: ${esc(o.fecha)}</div><div>Estado: ${esc(o.estado)}</div></div>
-  </div>
-  <div class="datos">
-    <div class="box"><h3>Cliente</h3><div><b>${esc(o.cliente)}</b></div><div>${esc(cliente.telefono||'')}</div><div>${esc(cliente.tiktok||'')}</div><div>${esc(cliente.direccion||'')}</div></div>
-  </div>
-  <table><thead><tr><th>Producto</th><th style="text-align:center">Cantidad</th><th style="text-align:right">Precio unitario</th><th style="text-align:right">Total</th></tr></thead><tbody>${filasProductos}</tbody></table>
-  <div class="totales"><table>
-    <tr><td>Total pedido</td><td style="text-align:right">${money(total)}</td></tr>
-    <tr><td>Total abonado</td><td style="text-align:right">${money(totalPagado)}</td></tr>
-    <tr class="saldo"><td>Saldo pendiente</td><td style="text-align:right">${money(saldo)}</td></tr>
-  </table></div>
-  <h3 style="font-size:13px;color:#5c6a5f;text-transform:uppercase;letter-spacing:.05em">Historial de abonos</h3>
-  <table><thead><tr><th>Fecha</th><th>Medio</th><th>Referencia</th><th style="text-align:right">Valor</th></tr></thead><tbody>${filasAbonos}</tbody></table>
-  <div class="footer">${esc(cfg.mensaje||'')}</div>
-  </body></html>`;
-  const win=window.open('','_blank');
-  if(!win){alert('El navegador bloqueó la ventana emergente. Habilítala para generar la factura.');return}
-  win.document.open();win.document.write(html);win.document.close();
+
+  if(!window.jspdf){alert('La librería de PDF aún está cargando, intenta de nuevo en unos segundos.');return}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const green=[63,125,74], dark=[22,22,22], muted=[92,106,95], red=[192,57,43];
+  let y=18;
+
+  const drawCompanyName=()=>{doc.setFont(undefined,'bold');doc.setFontSize(16);doc.setTextColor(...green);doc.text(cfg.empresa||'Pandala Kawaii',14,y+4)};
+  if(cfg.logo){
+    try{
+      const fmt=cfg.logo.includes('image/jpeg')||cfg.logo.includes('image/jpg')?'JPEG':'PNG';
+      doc.addImage(cfg.logo,fmt,14,y-6,40,22,undefined,'FAST');
+    }catch(e){drawCompanyName()}
+  }else{drawCompanyName()}
+
+  doc.setFont(undefined,'normal');doc.setFontSize(9);doc.setTextColor(...muted);
+  let infoY=y+18;
+  const infoLines=[];
+  if(cfg.direccion)infoLines.push(cfg.direccion);
+  const contact=[];
+  if(cfg.telefono)contact.push('Tel: '+cfg.telefono);
+  if(cfg.email)contact.push(cfg.email);
+  if(contact.length)infoLines.push(contact.join(' · '));
+  if(cfg.nit)infoLines.push('NIT/Doc: '+cfg.nit);
+  infoLines.forEach(line=>{doc.text(line,14,infoY);infoY+=4.5});
+
+  doc.setFont(undefined,'bold');doc.setFontSize(18);doc.setTextColor(...green);
+  doc.text('FACTURA',196,y+2,{align:'right'});
+  doc.setFont(undefined,'normal');doc.setFontSize(10);doc.setTextColor(...dark);
+  doc.text('N.º '+o.id,196,y+9,{align:'right'});
+  doc.text('Fecha: '+o.fecha,196,y+14,{align:'right'});
+  doc.text('Estado: '+o.estado,196,y+19,{align:'right'});
+
+  const lineY=Math.max(infoY,y+24)+2;
+  doc.setDrawColor(...green);doc.setLineWidth(0.6);doc.line(14,lineY,196,lineY);
+
+  let boxY=lineY+8;
+  doc.setFont(undefined,'bold');doc.setFontSize(9);doc.setTextColor(...muted);
+  doc.text('CLIENTE',14,boxY);
+  doc.setFont(undefined,'normal');doc.setFontSize(10);doc.setTextColor(...dark);
+  doc.text(o.cliente,14,boxY+6);
+  doc.setFontSize(9);doc.setTextColor(...muted);
+  let cy=boxY+11;
+  if(cliente.telefono){doc.text(cliente.telefono,14,cy);cy+=4.5}
+  if(cliente.tiktok){doc.text('TikTok: '+cliente.tiktok,14,cy);cy+=4.5}
+  if(cliente.direccion){doc.text(cliente.direccion,14,cy);cy+=4.5}
+
+  const rows=lineas.map(l=>[l.producto,String(l.cantidad),money(l.precio),money(l.precio*l.cantidad)]);
+  doc.autoTable({
+    startY:cy+6,
+    head:[['Producto','Cantidad','Precio unitario','Total']],
+    body:rows,
+    theme:'plain',
+    styles:{fontSize:9,textColor:dark,cellPadding:2.5},
+    headStyles:{fillColor:[233,244,234],textColor:[47,95,56],fontStyle:'bold'},
+    columnStyles:{1:{halign:'center'},2:{halign:'right'},3:{halign:'right'}},
+    margin:{left:14,right:14}
+  });
+
+  let afterTableY=doc.lastAutoTable.finalY+8;
+  doc.setFont(undefined,'normal');doc.setFontSize(10);doc.setTextColor(...dark);
+  doc.text('Total pedido:',150,afterTableY);doc.text(money(total),196,afterTableY,{align:'right'});
+  doc.text('Total abonado:',150,afterTableY+6);doc.text(money(totalPagado),196,afterTableY+6,{align:'right'});
+  doc.setDrawColor(...green);doc.line(150,afterTableY+9,196,afterTableY+9);
+  doc.setFont(undefined,'bold');doc.setFontSize(12);doc.setTextColor(...red);
+  doc.text('Saldo pendiente:',150,afterTableY+16);doc.text(money(saldo),196,afterTableY+16,{align:'right'});
+
+  let payY=afterTableY+26;
+  doc.setFont(undefined,'bold');doc.setFontSize(9);doc.setTextColor(...muted);
+  doc.text('HISTORIAL DE ABONOS',14,payY);
+  if(pagos.length){
+    doc.autoTable({
+      startY:payY+3,
+      head:[['Fecha','Medio','Referencia','Valor']],
+      body:pagos.map(p=>[p.fecha,p.medio,p.referencia||'—',money(p.valor)]),
+      theme:'plain',
+      styles:{fontSize:8.5,textColor:dark,cellPadding:2},
+      headStyles:{fillColor:[247,250,247],textColor:muted,fontStyle:'bold'},
+      columnStyles:{3:{halign:'right'}},
+      margin:{left:14,right:14}
+    });
+  }else{
+    doc.setFont(undefined,'normal');doc.setFontSize(9);doc.setTextColor(...muted);
+    doc.text('Sin abonos registrados',14,payY+6);
+  }
+
+  const pageHeight=doc.internal.pageSize.getHeight();
+  doc.setFont(undefined,'italic');doc.setFontSize(8.5);doc.setTextColor(...muted);
+  doc.text(cfg.mensaje||'',105,pageHeight-12,{align:'center'});
+
+  doc.save(`Factura_${o.id}.pdf`);
 }
 const DRIVE_CLIENT_ID='577413187819-72ieaitdj5mcgohg4s7n27q8gi1rqbrf.apps.googleusercontent.com';
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILENAME='gestor-live-tiktok-data.json';
-let driveTokenClient=null, driveAccessToken=null, driveFileId=null, gapiReady=false;
+let driveTokenClient=null, driveAccessToken=null, driveFileId=null, gapiReady=false, silentAttempt=false;
 
 function initDrive(){
   if(!window.gapi||!window.google){setTimeout(initDrive,300);return}
@@ -522,14 +571,26 @@ function initDrive(){
     await gapi.client.init({});
     await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
     gapiReady=true;
+    if(localStorage.getItem('driveEverConnected')==='1'){
+      updateAutoSaveStatus('Reconectando con Drive…');
+      silentAttempt=true;
+      driveTokenClient.requestAccessToken({prompt:'none'});
+    }
   });
   driveTokenClient=google.accounts.oauth2.initTokenClient({
     client_id:DRIVE_CLIENT_ID,
     scope:DRIVE_SCOPE,
     callback:async(resp)=>{
-      if(resp.error){alert('No se pudo conectar con Google Drive.');return}
+      if(resp.error){
+        if(!silentAttempt)alert('No se pudo conectar con Google Drive.');
+        else updateAutoSaveStatus('');
+        silentAttempt=false;
+        return;
+      }
+      silentAttempt=false;
       driveAccessToken=resp.access_token;
       gapi.client.setToken({access_token:driveAccessToken});
+      localStorage.setItem('driveEverConnected','1');
       $('driveStatus').textContent='Conectado a Google Drive';
       $('driveConnectBtn').textContent='Reconectar Drive';
       await driveLoadData();
