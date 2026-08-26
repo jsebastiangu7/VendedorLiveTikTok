@@ -181,13 +181,14 @@ body.device-mobile nav{order:4;width:100%}
 
 <script>
 const KEY='gestorVentasLiveTikTok_v2';
-const DEFAULT_CATEGORIES=['Escritura','Cuadernos','Agendas','Notas','Carpetas','Artículos oficina','Belleza','Accesorios'];
+const DEFAULT_CATEGORIES=['ESCRITURA','CUADERNOS','AGENDAS','NOTAS','CARPETAS','ARTÍCULOS OFICINA','BELLEZA','ACCESORIOS'];
 let state = JSON.parse(localStorage.getItem(KEY)||'null') || {
   inventory: [], clients: [], orders: [], payments: [], kits: [], categories: [...DEFAULT_CATEGORIES],
   invoiceConfig: {empresa:'Pandala Kawaii', logo:'', nit:'', telefono:'', email:'', direccion:'', mensaje:'¡Gracias por tu compra! — Pandala Kawaii'}
 };
 if(!state.invoiceConfig) state.invoiceConfig={empresa:'Pandala Kawaii', logo:'', nit:'', telefono:'', email:'', direccion:'', mensaje:'¡Gracias por tu compra! — Pandala Kawaii'};
 if(!state.categories||!state.categories.length) state.categories=[...DEFAULT_CATEGORIES];
+state.categories=state.categories.map(c=>c.toUpperCase());
 if(!state.kits) state.kits=[];
 let editingOrder=null;
 
@@ -434,8 +435,8 @@ function handleCategoryChange(select){
   if(select.value!=='__new__')return;
   const name=prompt('Nombre de la nueva categoría:');
   if(name&&name.trim()){
-    const trimmed=name.trim();
-    if(!state.categories.some(c=>c.toLowerCase()===trimmed.toLowerCase())){state.categories.push(trimmed);persist()}
+    const trimmed=name.trim().toUpperCase();
+    if(!state.categories.some(c=>c===trimmed)){state.categories.push(trimmed);persist()}
     fillCategorySelect(select,trimmed);
   }else{
     select.value=state.categories[0]||'';
@@ -701,6 +702,7 @@ async function driveLoadData(){
     state=data;
     if(!state.invoiceConfig)state.invoiceConfig={empresa:'Pandala Kawaii',logo:'',nit:'',telefono:'',email:'',direccion:'',mensaje:'¡Gracias por tu compra! — Pandala Kawaii'};
     if(!state.categories||!state.categories.length)state.categories=[...DEFAULT_CATEGORIES];
+    state.categories=state.categories.map(c=>c.toUpperCase());
     if(!state.kits)state.kits=[];
     localStorage.setItem(KEY,JSON.stringify(state));
     refresh();loadInvoiceConfig();
@@ -792,7 +794,7 @@ function onKitSelectChange(){
 function addKitComponentRow(producto='',cantidad=1){
   const tr=document.createElement('tr');
   const opts=state.inventory.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)}</option>`).join('');
-  tr.innerHTML=`<td><select class="kitCompProduct" onchange="kitComponentChanged(this)"><option value="">Seleccionar…</option>${opts}</select></td><td class="kitCompCosto">—</td><td class="kitCompPrecio">—</td><td><input class="kitCompQty" type="number" min="1" value="${cantidad}" oninput="updateKitTotals()"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateKitTotals()">×</button></td>`;
+  tr.innerHTML=`<td><select class="kitCompProduct" onchange="kitComponentChanged(this)"><option value="">Seleccionar…</option>${opts}</select></td><td class="kitCompDisponible">—</td><td class="kitCompCosto">—</td><td class="kitCompPrecio">—</td><td><input class="kitCompQty" type="number" min="1" value="${cantidad}" oninput="updateKitTotals()"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateKitTotals()">×</button></td>`;
   $('kitComponentsBody').appendChild(tr);
   if(producto){tr.querySelector('.kitCompProduct').value=producto;kitComponentChanged(tr.querySelector('.kitCompProduct'))}
   updateKitTotals();
@@ -800,6 +802,7 @@ function addKitComponentRow(producto='',cantidad=1){
 function kitComponentChanged(sel){
   const tr=sel.closest('tr');
   const p=state.inventory.find(x=>x.producto===sel.value);
+  tr.querySelector('.kitCompDisponible').textContent=p?Math.max(0,stockInfo(p).current):'—';
   tr.querySelector('.kitCompCosto').textContent=p?money(p.costo):'—';
   tr.querySelector('.kitCompPrecio').textContent=p?money(p.precio):'—';
   updateKitTotals();
@@ -894,7 +897,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
     </div>
     <div class="quick" style="margin:12px 0"><button class="btn" onclick="addKitComponentRow()">+ Agregar producto al kit</button></div>
     <div class="tablewrap" style="max-height:260px">
-      <table class="order-lines"><thead><tr><th style="min-width:200px">Producto</th><th>Costo unit.</th><th>Precio venta unit.</th><th style="width:100px">Cantidad</th><th></th></tr></thead><tbody id="kitComponentsBody"></tbody></table>
+      <table class="order-lines"><thead><tr><th style="min-width:200px">Producto</th><th>Disponibles</th><th>Costo unit.</th><th>Precio venta unit.</th><th style="width:100px">Cantidad</th><th></th></tr></thead><tbody id="kitComponentsBody"></tbody></table>
     </div>
     <div class="formgrid" style="margin-top:14px;grid-template-columns:repeat(3,1fr)">
       <div class="field"><label>Precio de venta del KIT</label><input id="kitPrice" type="number" min="0" value="0" oninput="updateKitTotals()"></div>
