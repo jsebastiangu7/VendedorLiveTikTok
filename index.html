@@ -49,7 +49,7 @@ body.device-mobile nav{order:4;width:100%}
 .ss-wrap{position:relative}
 .ss-wrap select{display:none}
 .ss-input{width:100%;border:1px solid var(--field-border);border-radius:8px;padding:10px;background:var(--field-bg);color:var(--ink);font:inherit;cursor:pointer}
-.ss-panel{position:absolute;z-index:60;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow:auto;box-shadow:0 8px 24px #00000022;display:none}
+.ss-panel{position:fixed;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:240px;overflow:auto;box-shadow:0 10px 30px #00000033;display:none}
 .ss-panel.open{display:block}
 .ss-group-label{padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;background:var(--thead-bg)}
 .ss-option{padding:8px 10px;cursor:pointer;font-size:13px;color:var(--ink)}
@@ -888,8 +888,9 @@ function enhanceSearchable(select){
   wrap.appendChild(select);
   const input=document.createElement('input');
   input.type='text';input.className='ss-input';input.autocomplete='off';input.placeholder='Buscar o seleccionar…';
+  wrap.appendChild(input);
   const panel=document.createElement('div');panel.className='ss-panel';
-  wrap.appendChild(input);wrap.appendChild(panel);
+  document.body.appendChild(panel);
   function currentLabel(){const opt=select.options[select.selectedIndex];return opt?opt.textContent:''}
   function appendOption(container,o){
     const div=document.createElement('div');div.className='ss-option';div.textContent=o.textContent;
@@ -914,10 +915,27 @@ function enhanceSearchable(select){
     });
     if(!any){const e=document.createElement('div');e.className='ss-empty';e.textContent='Sin resultados';panel.appendChild(e)}
   }
-  function openPanel(){renderPanel('');panel.classList.add('open')}
-  function closePanel(){panel.classList.remove('open');input.value=currentLabel()}
+  function positionPanel(){
+    const r=input.getBoundingClientRect();
+    const maxH=240;
+    const spaceBelow=window.innerHeight-r.bottom;
+    const spaceAbove=r.top;
+    panel.style.left=Math.max(4,r.left)+'px';
+    panel.style.width=r.width+'px';
+    if(spaceBelow<maxH&&spaceAbove>spaceBelow){
+      panel.style.top='';
+      panel.style.bottom=(window.innerHeight-r.top+4)+'px';
+      panel.style.maxHeight=Math.min(maxH,spaceAbove-8)+'px';
+    }else{
+      panel.style.bottom='';
+      panel.style.top=(r.bottom+4)+'px';
+      panel.style.maxHeight=Math.min(maxH,spaceBelow-8)+'px';
+    }
+  }
+  function openPanel(){renderPanel('');panel.classList.add('open');positionPanel();window.addEventListener('scroll',positionPanel,true);window.addEventListener('resize',positionPanel)}
+  function closePanel(){panel.classList.remove('open');input.value=currentLabel();window.removeEventListener('scroll',positionPanel,true);window.removeEventListener('resize',positionPanel)}
   input.addEventListener('focus',()=>{input.value='';openPanel()});
-  input.addEventListener('input',()=>renderPanel(input.value));
+  input.addEventListener('input',()=>{renderPanel(input.value);positionPanel()});
   input.addEventListener('blur',()=>setTimeout(closePanel,150));
   input.addEventListener('keydown',e=>{if(e.key==='Escape'){closePanel();input.blur()}});
   select._ssRefresh=()=>{input.value=currentLabel()};
