@@ -46,6 +46,16 @@ body.device-tablet .formgrid,body.device-mobile .formgrid{grid-template-columns:
 body.device-mobile .formgrid{grid-template-columns:1fr}
 body.device-tablet .cards,body.device-mobile .cards{grid-template-columns:1fr 1fr}
 body.device-mobile nav{order:4;width:100%}
+.ss-wrap{position:relative}
+.ss-wrap select{display:none}
+.ss-input{width:100%;border:1px solid var(--field-border);border-radius:8px;padding:10px;background:var(--field-bg);color:var(--ink);font:inherit;cursor:pointer}
+.ss-panel{position:absolute;z-index:60;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow:auto;box-shadow:0 8px 24px #00000022;display:none}
+.ss-panel.open{display:block}
+.ss-group-label{padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;background:var(--thead-bg)}
+.ss-option{padding:8px 10px;cursor:pointer;font-size:13px;color:var(--ink)}
+.ss-option:hover,.ss-option.active{background:var(--primary-light);color:var(--primary)}
+.ss-empty{padding:10px;color:var(--muted);font-size:13px;text-align:center}
+td .ss-wrap,.field .ss-wrap{width:100%}
 </style>
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
@@ -231,11 +241,15 @@ function showView(id){
 }
 function fillSelects(){
   const c=$('orderClient'), current=c.value;
-  c.innerHTML='<option value="">Seleccionar cliente…</option>'+state.clients.filter(x=>x.estado!=='Inactivo').map(x=>`<option>${esc(x.nombre)}</option>`).join('');
+  const clientsSorted=[...state.clients].filter(x=>x.estado!=='Inactivo').sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  c.innerHTML='<option value="">Seleccionar cliente…</option>'+clientsSorted.map(x=>`<option>${esc(x.nombre)}</option>`).join('');
   if(state.clients.some(x=>x.nombre===current)) c.value=current;
+  enhanceSearchable(c);
   const po=$('payOrder'), pc=po.value;
-  po.innerHTML='<option value="">Seleccionar pedido…</option>'+state.orders.map(o=>`<option value="${esc(o.id)}">${esc(o.id)} — ${esc(o.cliente)} — ${money(orderTotal(o))}</option>`).join('');
+  const ordersSorted=[...state.orders].sort((a,b)=>a.id.localeCompare(b.id,'es'));
+  po.innerHTML='<option value="">Seleccionar pedido…</option>'+ordersSorted.map(o=>`<option value="${esc(o.id)}">${esc(o.id)} — ${esc(o.cliente)} — ${money(orderTotal(o))}</option>`).join('');
   if(state.orders.some(x=>x.id===pc)) po.value=pc;
+  enhanceSearchable(po);
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function orderTotal(o){return (o.lineas||[]).reduce((a,l)=>a+(Number(l.precio)||0)*(Number(l.cantidad)||0),0)}
@@ -303,8 +317,10 @@ function renderDashboard(){
 function fillDashboardClients(){
   const s=$('dashboardClient'); if(!s)return;
   const current=s.value;
-  s.innerHTML='<option value="">Seleccionar cliente…</option>'+state.clients.map(c=>`<option value="${esc(c.nombre)}">${esc(c.nombre)}</option>`).join('');
+  const sorted=[...state.clients].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  s.innerHTML='<option value="">Seleccionar cliente…</option>'+sorted.map(c=>`<option value="${esc(c.nombre)}">${esc(c.nombre)}</option>`).join('');
   if(state.clients.some(c=>c.nombre===current))s.value=current;
+  enhanceSearchable(s);
 }
 function renderClientOrders(){
   const box=$('clientOrders'); if(!box)return;
@@ -359,12 +375,17 @@ function renderPayments(){
 }
 function addLine(product='',qty=1){
   const tr=document.createElement('tr');
-  const opts=state.inventory.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)} — ${money(p.precio)}</option>`).join('');
-  const kitOpts=(state.kits||[]).map(k=>`<option value="${esc(k.nombre)}">🎁 ${esc(k.nombre)} — ${money(k.precioVenta)}</option>`).join('');
+  const productsSorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
+  const opts=productsSorted.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)} — ${money(p.precio)}</option>`).join('');
+  const kitsAvailable=(state.kits||[]).filter(k=>kitStockInfo(k).current>0||k.nombre===product);
+  const kitsSorted=kitsAvailable.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const kitOpts=kitsSorted.map(k=>`<option value="${esc(k.nombre)}">🎁 ${esc(k.nombre)} — ${money(k.precioVenta)}</option>`).join('');
   const groups=`<option value="">Seleccionar…</option><optgroup label="Productos">${opts}</optgroup>`+(kitOpts?`<optgroup label="Kits">${kitOpts}</optgroup>`:'');
   tr.innerHTML=`<td><select class="lineProduct" onchange="lineChanged(this)">${groups}</select></td><td style="width:90px"><input class="lineQty" type="number" min="1" value="${qty}" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="linePrice" type="number" min="0" value="0" oninput="updateLiveTotals()"></td><td class="lineTotal num">$0</td><td><button class="btn danger" onclick="this.closest('tr').remove();updateLiveTotals()">×</button></td>`;
   $('lineBody').appendChild(tr);
-  if(product){tr.querySelector('.lineProduct').value=product;lineChanged(tr.querySelector('.lineProduct'))}
+  const sel=tr.querySelector('.lineProduct');
+  if(product){sel.value=product;lineChanged(sel)}
+  enhanceSearchable(sel);
   updateLiveTotals();
 }
 function lineChanged(sel){
@@ -427,9 +448,11 @@ function editClient(name){
   c.telefono=telefono;c.tiktok=tiktok;c.direccion=direccion;persist();refresh();
 }
 function fillCategorySelect(select,selected){
-  const opts=state.categories.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${esc(c)}</option>`).join('');
+  const sorted=[...state.categories].sort((a,b)=>a.localeCompare(b,'es'));
+  const opts=sorted.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${esc(c)}</option>`).join('');
   select.innerHTML=opts+'<option value="__new__">+ Nueva categoría…</option>';
-  if(!selected) select.value=state.categories[0]||'__new__';
+  if(!selected) select.value=sorted[0]||'__new__';
+  enhanceSearchable(select);
 }
 function handleCategoryChange(select){
   if(select.value!=='__new__')return;
@@ -447,7 +470,9 @@ function openProductModal(){
   $('newProductName').disabled=false;$('newProductCategory').disabled=false;$('newProductCost').disabled=false;$('newProductShipping').disabled=false;$('newProductPrice').disabled=false;$('newProductMin').disabled=false;$('newProductDate').disabled=false;
   $('newProductName').value='';$('newProductStock').value=0;$('newProductCost').value=0;$('newProductShipping').value=0;$('newProductPrice').value=0;$('newProductMin').value=1;$('newProductDate').value=today();
   fillCategorySelect($('newProductCategory'),'');
-  $('existingProduct').innerHTML=state.inventory.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)}</option>`).join('');
+  const productsSorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
+  $('existingProduct').innerHTML=productsSorted.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)}</option>`).join('');
+  enhanceSearchable($('existingProduct'));
   $('productModal').classList.add('open');
 }
 function closeProductModal(){$('productModal').classList.remove('open')}
@@ -771,7 +796,9 @@ function openKitModal(){
 function closeKitModal(){$('kitModal').classList.remove('open')}
 function fillKitSelect(){
   const sel=$('kitSelect');
-  sel.innerHTML='<option value="__new__">+ Nuevo kit</option>'+(state.kits||[]).map(k=>`<option value="${esc(k.nombre)}">${esc(k.nombre)}</option>`).join('');
+  const sorted=[...(state.kits||[])].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  sel.innerHTML='<option value="__new__">+ Nuevo kit</option>'+sorted.map(k=>`<option value="${esc(k.nombre)}">${esc(k.nombre)}</option>`).join('');
+  enhanceSearchable(sel);
 }
 function resetKitForm(){
   $('kitName').value='';
@@ -793,10 +820,13 @@ function onKitSelectChange(){
 }
 function addKitComponentRow(producto='',cantidad=1){
   const tr=document.createElement('tr');
-  const opts=state.inventory.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)}</option>`).join('');
+  const productsSorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
+  const opts=productsSorted.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)}</option>`).join('');
   tr.innerHTML=`<td><select class="kitCompProduct" onchange="kitComponentChanged(this)"><option value="">Seleccionar…</option>${opts}</select></td><td class="kitCompDisponible">—</td><td class="kitCompCosto">—</td><td class="kitCompPrecio">—</td><td><input class="kitCompQty" type="number" min="1" value="${cantidad}" oninput="updateKitTotals()"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateKitTotals()">×</button></td>`;
   $('kitComponentsBody').appendChild(tr);
-  if(producto){tr.querySelector('.kitCompProduct').value=producto;kitComponentChanged(tr.querySelector('.kitCompProduct'))}
+  const sel=tr.querySelector('.kitCompProduct');
+  if(producto){sel.value=producto;kitComponentChanged(sel)}
+  enhanceSearchable(sel);
   updateKitTotals();
 }
 function kitComponentChanged(sel){
@@ -848,6 +878,50 @@ function deleteKit(){
   if(!confirm(`¿Eliminar el kit "${name}"? Esto no afecta el inventario de sus productos, solo la definición del kit.`))return;
   state.kits=state.kits.filter(k=>k.nombre!==name);
   persist();closeKitModal();refresh();alert('Kit eliminado.');
+}
+function enhanceSearchable(select){
+  if(!select)return;
+  if(select.dataset.ssEnhanced){if(select._ssRefresh)select._ssRefresh();return}
+  select.dataset.ssEnhanced='1';
+  const wrap=document.createElement('div');wrap.className='ss-wrap';
+  select.parentNode.insertBefore(wrap,select);
+  wrap.appendChild(select);
+  const input=document.createElement('input');
+  input.type='text';input.className='ss-input';input.autocomplete='off';input.placeholder='Buscar o seleccionar…';
+  const panel=document.createElement('div');panel.className='ss-panel';
+  wrap.appendChild(input);wrap.appendChild(panel);
+  function currentLabel(){const opt=select.options[select.selectedIndex];return opt?opt.textContent:''}
+  function appendOption(container,o){
+    const div=document.createElement('div');div.className='ss-option';div.textContent=o.textContent;
+    if(o.value===select.value)div.classList.add('active');
+    div.onmousedown=(e)=>{e.preventDefault();select.value=o.value;input.value=o.textContent;closePanel();select.dispatchEvent(new Event('change',{bubbles:true}))};
+    container.appendChild(div);
+  }
+  function renderPanel(filter){
+    panel.innerHTML='';
+    const f=(filter||'').trim().toLowerCase();
+    let any=false;
+    Array.from(select.children).forEach(node=>{
+      if(node.tagName==='OPTGROUP'){
+        const items=Array.from(node.children).filter(o=>!f||o.textContent.toLowerCase().includes(f));
+        if(!items.length)return;
+        const label=document.createElement('div');label.className='ss-group-label';label.textContent=node.label;panel.appendChild(label);
+        items.forEach(o=>appendOption(panel,o));any=true;
+      }else if(node.tagName==='OPTION'){
+        if(node.value===''){if(!f){appendOption(panel,node);any=true}return}
+        if(!f||node.textContent.toLowerCase().includes(f)){appendOption(panel,node);any=true}
+      }
+    });
+    if(!any){const e=document.createElement('div');e.className='ss-empty';e.textContent='Sin resultados';panel.appendChild(e)}
+  }
+  function openPanel(){renderPanel('');panel.classList.add('open')}
+  function closePanel(){panel.classList.remove('open');input.value=currentLabel()}
+  input.addEventListener('focus',()=>{input.value='';openPanel()});
+  input.addEventListener('input',()=>renderPanel(input.value));
+  input.addEventListener('blur',()=>setTimeout(closePanel,150));
+  input.addEventListener('keydown',e=>{if(e.key==='Escape'){closePanel();input.blur()}});
+  select._ssRefresh=()=>{input.value=currentLabel()};
+  input.value=currentLabel();
 }
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
 </script>
