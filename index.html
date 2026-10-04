@@ -720,7 +720,7 @@ function generateInvoice(orderId){
   setTitleFont('bold');doc.setFontSize(18);doc.setTextColor(...green);
   doc.text('FACTURA',196,y+2,{align:'right'});
   setBodyFont('normal');doc.setFontSize(10);doc.setTextColor(...dark);
-  doc.text('N.º '+o.id,196,y+9,{align:'right'});
+  doc.text('No. '+o.id,196,y+9,{align:'right'});
   doc.text('Fecha: '+o.fecha,196,y+14,{align:'right'});
   doc.text('Estado: '+o.estado,196,y+19,{align:'right'});
 
