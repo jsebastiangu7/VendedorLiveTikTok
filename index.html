@@ -666,6 +666,12 @@ function generateInvoice(orderId){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4'});
   registerCustomFonts(doc);
+  const sanitizeEsInvoice=s=>typeof s==='string'?s.replace(/ñ/g,'n').replace(/Ñ/g,'N'):s;
+  const _origDocText=doc.text.bind(doc);
+  doc.text=function(text,...rest){
+    text=Array.isArray(text)?text.map(sanitizeEsInvoice):sanitizeEsInvoice(text);
+    return _origDocText(text,...rest);
+  };
   const green=[63,125,74], dark=[22,22,22], muted=[92,106,95], red=[192,57,43];
   const FONT_MAP={
     'Arial':{family:'Inter'},
