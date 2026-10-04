@@ -65,6 +65,8 @@ td .ss-wrap,.field .ss-wrap{width:100%}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
 </head>
 <body>
 <header>
@@ -148,7 +150,7 @@ td .ss-wrap,.field .ss-wrap{width:100%}
 
 <section id="inventario" class="view">
   <h1>Inventario</h1><div class="subtitle">El stock vendido se calcula automáticamente a partir de los pedidos guardados.</div>
-  <div class="toolbar"><button class="btn primary" onclick="openProductModal()">+ Agregar producto / stock</button><button class="btn" onclick="openKitModal()">🎁 Kits</button><input id="invSearch" placeholder="Buscar producto" oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">Todos</option><option>EN STOCK</option><option>REPOSICIÓN</option><option>AGOTADO</option></select><button class="btn" onclick="exportInventoryExcel()">⬇ Descargar Excel</button></div>
+  <div class="toolbar"><button class="btn primary" onclick="openProductModal()">+ Agregar producto / stock</button><button class="btn" onclick="openKitModal()">🎁 Kits</button><button class="btn" onclick="$('supplierInvoiceFile').click()">📄 Subir factura proveedor</button><input id="supplierInvoiceFile" type="file" accept="image/*,.pdf" style="display:none" onchange="handleSupplierInvoiceFile(event)"><input id="invSearch" placeholder="Buscar producto" oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">Todos</option><option>EN STOCK</option><option>REPOSICIÓN</option><option>AGOTADO</option></select><button class="btn" onclick="exportInventoryExcel()">⬇ Descargar Excel</button></div>
   <div class="tablewrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Stock inicial</th><th>Vendido</th><th>Stock actual</th><th>Estado</th><th>Precio venta</th><th>Margen %</th><th>Fecha compra</th><th>Días</th><th>Acciones</th></tr></thead><tbody id="invBody"></tbody></table></div>
 </section>
 
@@ -212,7 +214,7 @@ if(!state.kits) state.kits=[];
 let editingOrder=null;
 
 const $=id=>document.getElementById(id);
-const money=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0);
+const money=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0).replace(/ /g,' ');
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 let autoSyncTimer=null;
@@ -1051,6 +1053,247 @@ function enhanceSearchable(select){
   select._ssRefresh=()=>{input.value=currentLabel()};
   input.value=currentLabel();
 }
+/* ===== Subir factura proveedor (OCR) ===== */
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function rasterizePdf(file){
+  const dataUrl=await fileToDataUrl(file);
+  if(window.pdfjsLib&&pdfjsLib.GlobalWorkerOptions)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';
+  const base64=dataUrl.split(',')[1];
+  const raw=atob(base64);
+  const bytes=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+  const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+  const images=[];
+  const maxPages=Math.min(pdf.numPages,5);
+  for(let n=1;n<=maxPages;n++){
+    const page=await pdf.getPage(n);
+    const viewport=page.getViewport({scale:2});
+    const canvas=document.createElement('canvas');
+    canvas.width=viewport.width;canvas.height=viewport.height;
+    const ctx=canvas.getContext('2d');
+    await page.render({canvasContext:ctx,viewport}).promise;
+    images.push(canvas.toDataURL('image/png'));
+  }
+  return images;
+}
+async function ocrImage(dataUrl,onProgress){
+  const result=await Tesseract.recognize(dataUrl,'spa',{
+    logger:m=>{if(m.status==='recognizing text'&&typeof onProgress==='function')onProgress(m.progress||0)}
+  });
+  return result.data&&result.data.text||'';
+}
+function parseMoneyToken(tok){
+  let t=String(tok).replace(/[^\d.,]/g,'');
+  if(!t)return 0;
+  if(t.includes(',')&&t.includes('.')){
+    if(t.lastIndexOf(',')>t.lastIndexOf('.')){t=t.replace(/\./g,'').replace(',','.')}
+    else{t=t.replace(/,/g,'')}
+  }else if(t.includes(',')){
+    const parts=t.split(',');
+    if(parts[parts.length-1].length===2){t=t.replace(',','.')}else{t=t.replace(/,/g,'')}
+  }else if(t.includes('.')){
+    const parts=t.split('.');
+    if(parts[parts.length-1].length===3){t=t.replace(/\./g,'')}
+  }
+  return Number(t)||0;
+}
+function parseInvoiceText(text){
+  const lines=String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  let fecha='';
+  const dateRegexYMD=/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/;
+  const dateRegexDMY=/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/;
+  for(const line of lines){
+    let m=line.match(dateRegexYMD);
+    if(m){fecha=`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;break}
+    m=line.match(dateRegexDMY);
+    if(m){fecha=`${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;break}
+  }
+  let proveedor='';
+  const provLine=lines.find(l=>/proveedor|empresa|raz[oó]n social|vendedor/i.test(l));
+  if(provLine){
+    const m=provLine.match(/[:\-]\s*(.+)/);
+    proveedor=m?m[1].trim():provLine.replace(/proveedor|empresa|raz[oó]n social|vendedor/ig,'').replace(/[:\-]/g,'').trim();
+  }
+  if(!proveedor&&lines.length)proveedor=lines[0].slice(0,60);
+  const items=[];
+  const itemLineRegex=/^(\d{1,4})\s+(.{3,60}?)\s+([\d.,]{3,})\s*$/;
+  const priceToken=/^[\d][\d.,]*\d$/;
+  lines.forEach(line=>{
+    if(/^(fecha|proveedor|nit|total|subtotal|iva|factura|empresa|direcci[oó]n|tel[eé]fono|raz[oó]n|cliente|descuento)/i.test(line))return;
+    const m=line.match(itemLineRegex);
+    if(m){
+      const cantidad=Number(m[1]);
+      const descripcion=m[2].trim();
+      const precio=parseMoneyToken(m[3]);
+      if(cantidad>0&&cantidad<10000&&precio>0&&descripcion.length>1){items.push({producto:descripcion,cantidad,costo:precio});return}
+    }
+    const tokens=line.split(/\s+/);
+    if(tokens.length>=3){
+      const nums=[];
+      tokens.forEach((t,idx)=>{if(priceToken.test(t))nums.push({idx,val:t})});
+      if(nums.length>=2){
+        const qtyTok=nums[0],priceTok=nums[nums.length-1];
+        const qty=parseInt(qtyTok.val.replace(/\D/g,''),10);
+        const precio=parseMoneyToken(priceTok.val);
+        const descripcion=tokens.slice(qtyTok.idx+1,priceTok.idx).join(' ').trim();
+        if(qty>0&&qty<10000&&precio>0&&descripcion.length>1)items.push({producto:descripcion,cantidad:qty,costo:precio});
+      }
+    }
+  });
+  return {fecha,proveedor,items};
+}
+function findBestProductMatch(name){
+  if(!name)return'';
+  const n=name.toLowerCase().trim();
+  let best='',bestScore=0;
+  state.inventory.forEach(p=>{
+    const pn=p.producto.toLowerCase();
+    let score=0;
+    if(pn===n)score=100;
+    else if(pn.includes(n)||n.includes(pn))score=60;
+    else{
+      const wordsA=new Set(n.split(/\s+/).filter(Boolean));
+      const wordsB=new Set(pn.split(/\s+/).filter(Boolean));
+      let common=0;wordsA.forEach(w=>{if(wordsB.has(w))common++});
+      score=common*10;
+    }
+    if(score>bestScore){bestScore=score;best=p.producto}
+  });
+  return bestScore>=20?best:'';
+}
+async function handleSupplierInvoiceFile(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  $('supplierProgressModal').classList.add('open');
+  $('supplierProgressText').textContent='Preparando archivo…';
+  $('supplierProgressBar').style.width='0%';
+  try{
+    let images;
+    if(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf')){
+      $('supplierProgressText').textContent='Convirtiendo PDF a imagen…';
+      images=await rasterizePdf(file);
+    }else{
+      images=[await fileToDataUrl(file)];
+    }
+    let fullText='';
+    for(let i=0;i<images.length;i++){
+      $('supplierProgressText').textContent=`Leyendo página ${i+1} de ${images.length}…`;
+      const pageText=await ocrImage(images[i],p=>{
+        const overall=((i+p)/images.length)*100;
+        $('supplierProgressBar').style.width=Math.min(99,overall)+'%';
+      });
+      fullText+=pageText+'\n';
+    }
+    $('supplierProgressBar').style.width='100%';
+    const parsed=parseInvoiceText(fullText);
+    $('supplierProgressModal').classList.remove('open');
+    openSupplierInvoiceModal();
+    $('supplierName').value=parsed.proveedor||'';
+    $('supplierDate').value=parsed.fecha||today();
+    $('supplierRawText').value=fullText.trim();
+    if(parsed.items.length){parsed.items.forEach(it=>addSupplierItemRow(it))}else{addSupplierItemRow({})}
+    if(!parsed.items.length)alert('No se pudieron identificar productos automáticamente. Revisa el texto reconocido y agrega las líneas manualmente.');
+  }catch(err){
+    console.error(err);
+    $('supplierProgressModal').classList.remove('open');
+    openSupplierInvoiceModal();
+    addSupplierItemRow({});
+    alert('No se pudo leer el documento automáticamente. Puedes agregar los productos manualmente.');
+  }
+  event.target.value='';
+}
+function openSupplierInvoiceModal(){
+  $('supplierItemsBody').innerHTML='';
+  $('supplierInvoiceModal').classList.add('open');
+}
+function closeSupplierInvoiceModal(){
+  $('supplierInvoiceModal').classList.remove('open');
+}
+function toggleSupplierRawText(){
+  const ta=$('supplierRawText');
+  ta.style.display=ta.style.display==='none'?'block':'none';
+}
+function addSupplierItemRow(item){
+  item=item||{};
+  const tr=document.createElement('tr');
+  const productsSorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
+  const matchName=item.producto?findBestProductMatch(item.producto):'';
+  const opts=productsSorted.map(p=>`<option value="${esc(p.producto)}" ${p.producto===matchName?'selected':''}>${esc(p.producto)}</option>`).join('');
+  tr.innerHTML=`<td style="text-align:center"><input type="checkbox" class="supIncluir" checked></td>
+    <td>
+      <select class="supProducto" onchange="supplierProductChanged(this)"><option value="__new__">+ Crear nuevo producto</option>${opts}</select>
+      <div class="supNewFields" style="display:none;margin-top:6px">
+        <input class="supNewName" placeholder="Nombre del nuevo producto" value="${esc(item.producto||'')}" style="width:100%;margin-bottom:4px;padding:6px;border:1px solid var(--field-border);border-radius:6px;background:var(--field-bg);color:var(--ink)">
+        <select class="supNewCategoria" style="width:100%"></select>
+      </div>
+    </td>
+    <td><input class="supCantidad" type="number" min="0" step="1" value="${Number(item.cantidad)||1}"></td>
+    <td><input class="supCosto" type="number" min="0" value="${Number(item.costo)||0}"></td>
+    <td><input class="supEnvio" type="number" min="0" value="0"></td>
+    <td><input class="supPrecio" type="number" min="0" value="${Number(item.precio)||0}"></td>
+    <td style="text-align:center"><input type="checkbox" class="supActualizarCosto" checked></td>
+    <td><button class="btn danger" onclick="this.closest('tr').remove()">×</button></td>`;
+  $('supplierItemsBody').appendChild(tr);
+  fillCategorySelect(tr.querySelector('.supNewCategoria'),'');
+  const sel=tr.querySelector('.supProducto');
+  sel.value=matchName||'__new__';
+  enhanceSearchable(sel);
+  supplierProductChanged(sel);
+}
+function supplierProductChanged(sel){
+  const tr=sel.closest('tr');
+  const isNew=sel.value==='__new__';
+  tr.querySelector('.supNewFields').style.display=isNew?'block':'none';
+  const chk=tr.querySelector('.supActualizarCosto');
+  chk.disabled=isNew;
+  chk.closest('td').style.opacity=isNew?'0.4':'1';
+}
+function confirmSupplierInvoice(){
+  const fecha=$('supplierDate').value||today();
+  const rows=[...document.querySelectorAll('#supplierItemsBody tr')];
+  if(!rows.length){alert('No hay productos para procesar.');return}
+  let creados=0,actualizados=0;
+  const errores=[];
+  rows.forEach((tr,idx)=>{
+    if(!tr.querySelector('.supIncluir').checked)return;
+    const cantidad=Number(tr.querySelector('.supCantidad').value)||0;
+    if(cantidad<=0){errores.push(`Línea ${idx+1}: cantidad inválida, se omitió.`);return}
+    const costo=Number(tr.querySelector('.supCosto').value)||0;
+    const envio=Number(tr.querySelector('.supEnvio').value)||0;
+    const precio=Number(tr.querySelector('.supPrecio').value)||0;
+    const sel=tr.querySelector('.supProducto');
+    if(sel.value==='__new__'){
+      const nombre=tr.querySelector('.supNewName').value.trim();
+      if(!nombre){errores.push(`Línea ${idx+1}: falta el nombre del nuevo producto, se omitió.`);return}
+      if(state.inventory.some(p=>p.producto.toLowerCase()===nombre.toLowerCase())){errores.push(`Línea ${idx+1}: "${nombre}" ya existe en inventario, se omitió (selecciónalo como producto existente).`);return}
+      const categoriaSel=tr.querySelector('.supNewCategoria');
+      const categoria=categoriaSel.value==='__new__'?'':categoriaSel.value;
+      state.inventory.push({producto:nombre,categoria,costo,envio,stock:cantidad,sold:0,precio,minimo:1,fechaCompra:fecha});
+      creados++;
+    }else{
+      const p=state.inventory.find(x=>x.producto===sel.value);
+      if(!p){errores.push(`Línea ${idx+1}: producto no encontrado, se omitió.`);return}
+      p.stock=(Number(p.stock)||0)+cantidad;
+      if(tr.querySelector('.supActualizarCosto').checked){
+        p.costo=costo;p.envio=envio;
+        if(precio>0)p.precio=precio;
+        p.fechaCompra=fecha;
+      }
+      actualizados++;
+    }
+  });
+  persist();refresh();closeSupplierInvoiceModal();
+  let msg=`Inventario actualizado: ${creados} producto(s) nuevo(s), ${actualizados} actualizado(s).`;
+  if(errores.length)msg+='\n\nAvisos:\n'+errores.join('\n');
+  alert(msg);
+}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
 </script>
 
@@ -1108,6 +1351,37 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
     </div>
     <div class="note" style="margin-top:8px">El stock del kit se calcula automáticamente según el inventario disponible de sus componentes. Al vender un kit, se descuenta cada producto según la cantidad definida aquí.</div>
     <div class="modal-actions"><button class="btn danger" id="kitDeleteBtn" style="display:none" onclick="deleteKit()">Eliminar kit</button><button class="btn" onclick="closeKitModal()">Cancelar</button><button class="btn primary" onclick="saveKit()">Guardar kit</button></div>
+  </div>
+</div>
+
+<div id="supplierProgressModal" class="modal-backdrop">
+  <div class="modal" style="width:min(420px,calc(100% - 30px));text-align:center">
+    <h2>Leyendo factura…</h2>
+    <div class="note" id="supplierProgressText">Preparando archivo…</div>
+    <div style="margin-top:14px;height:10px;border-radius:6px;background:var(--thead-bg);overflow:hidden">
+      <div id="supplierProgressBar" style="height:100%;width:0%;background:var(--primary);transition:width .2s"></div>
+    </div>
+    <div class="note" style="margin-top:12px">Esto puede tardar uno o dos minutos según el tamaño del documento.</div>
+  </div>
+</div>
+
+<div id="supplierInvoiceModal" class="modal-backdrop" onclick="if(event.target===this)closeSupplierInvoiceModal()">
+  <div class="modal" style="width:min(920px,calc(100% - 30px))">
+    <h2>Revisar factura de proveedor</h2>
+    <div class="note">La lectura automática (OCR) es aproximada: revisa y corrige cada línea antes de confirmar. Nada se aplica al inventario hasta que presiones "Confirmar y actualizar inventario".</div>
+    <div class="formgrid" style="grid-template-columns:1fr 1fr;margin-top:10px">
+      <div class="field"><label>Proveedor</label><input id="supplierName" placeholder="Nombre del proveedor"></div>
+      <div class="field"><label>Fecha de compra</label><input id="supplierDate" type="date"></div>
+    </div>
+    <div class="quick" style="margin:10px 0">
+      <button class="btn" onclick="addSupplierItemRow()">+ Agregar línea manual</button>
+      <button class="btn" onclick="toggleSupplierRawText()">Ver/ocultar texto reconocido (OCR)</button>
+    </div>
+    <textarea id="supplierRawText" readonly style="display:none;width:100%;min-height:110px;margin-bottom:10px;font-family:monospace;font-size:11px;border:1px solid var(--field-border);border-radius:8px;padding:8px;background:var(--field-bg);color:var(--ink)"></textarea>
+    <div class="tablewrap" style="max-height:320px">
+      <table class="order-lines"><thead><tr><th style="width:36px"></th><th style="min-width:230px">Producto</th><th style="width:110px">Cantidad</th><th style="width:120px">Costo unit.</th><th style="width:110px">Envío unit.</th><th style="width:120px">Precio venta</th><th style="width:70px">Actualizar costo</th><th></th></tr></thead><tbody id="supplierItemsBody"></tbody></table>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeSupplierInvoiceModal()">Cancelar</button><button class="btn primary" onclick="confirmSupplierInvoice()">Confirmar y actualizar inventario</button></div>
   </div>
 </div>
 </body>
