@@ -651,6 +651,25 @@ function registerCustomFonts(doc){
     }catch(e){console.error('No se pudo incrustar la fuente',f.key,e)}
   });
 }
+function fontHasGlyph(doc,family,codePoint){
+  try{
+    doc.setFont(family,'normal');
+    const f=doc.getFont();
+    const codeMap=f&&f.metadata&&f.metadata.cmap&&f.metadata.cmap.unicode&&f.metadata.cmap.unicode.codeMap;
+    if(!codeMap)return true; // sin datos de glifos (fuente estándar) => se asume compatible, no se modifica el texto
+    return !!codeMap[codePoint];
+  }catch(e){return true}
+}
+function nTildeFallback(doc,family){
+  return {lower:fontHasGlyph(doc,family,0xf1),upper:fontHasGlyph(doc,family,0xd1)};
+}
+function applyNTildeFallback(text,support){
+  if(text==null)return text;
+  let out=String(text);
+  if(!support.lower)out=out.replace(/ñ/g,'n');
+  if(!support.upper)out=out.replace(/Ñ/g,'N');
+  return out;
+}
 
 function generateInvoice(orderId){
   const o=state.orders.find(x=>x.id===orderId);if(!o){alert('Pedido no encontrado.');return}
@@ -686,6 +705,10 @@ function generateInvoice(orderId){
   const bodyFont=FONT_MAP[cfg.fontCuerpo]||FONT_MAP['Arial'];
   const setTitleFont=(style='normal')=>doc.setFont(titleFont.family,style);
   const setBodyFont=(style='normal')=>doc.setFont(bodyFont.family,style);
+  const titleNSupport=nTildeFallback(doc,titleFont.family);
+  const bodyNSupport=nTildeFallback(doc,bodyFont.family);
+  const tt=t=>applyNTildeFallback(t,titleNSupport);
+  const bt=t=>applyNTildeFallback(t,bodyNSupport);
 
   if(cfg.watermark&&cfg.watermarkW&&cfg.watermarkH){
     try{
@@ -704,7 +727,7 @@ function generateInvoice(orderId){
 
   let y=18;
 
-  const drawCompanyName=()=>{setTitleFont('bold');doc.setFontSize(16);doc.setTextColor(...green);doc.text(cfg.empresa||'Pandala Kawaii',14,y+4)};
+  const drawCompanyName=()=>{setTitleFont('bold');doc.setFontSize(16);doc.setTextColor(...green);doc.text(tt(cfg.empresa||'Pandala Kawaii'),14,y+4)};
   if(cfg.logo){
     try{
       const fmt=cfg.logo.includes('image/jpeg')||cfg.logo.includes('image/jpg')?'JPEG':'PNG';
@@ -721,7 +744,7 @@ function generateInvoice(orderId){
   if(cfg.email)contact.push(cfg.email);
   if(contact.length)infoLines.push(contact.join(' · '));
   if(cfg.nit)infoLines.push('NIT/Doc: '+cfg.nit);
-  infoLines.forEach(line=>{doc.text(line,14,infoY);infoY+=4.5});
+  infoLines.forEach(line=>{doc.text(bt(line),14,infoY);infoY+=4.5});
 
   setTitleFont('bold');doc.setFontSize(18);doc.setTextColor(...green);
   doc.text('FACTURA',196,y+2,{align:'right'});
@@ -737,14 +760,14 @@ function generateInvoice(orderId){
   setTitleFont('bold');doc.setFontSize(9);doc.setTextColor(...muted);
   doc.text('CLIENTE',14,boxY);
   setBodyFont('normal');doc.setFontSize(10);doc.setTextColor(...dark);
-  doc.text(o.cliente,14,boxY+6);
+  doc.text(bt(o.cliente),14,boxY+6);
   doc.setFontSize(9);doc.setTextColor(...muted);
   let cy=boxY+11;
-  if(cliente.telefono){doc.text(cliente.telefono,14,cy);cy+=4.5}
-  if(cliente.tiktok){doc.text('Ciudad: '+cliente.tiktok,14,cy);cy+=4.5}
-  if(cliente.direccion){doc.text(cliente.direccion,14,cy);cy+=4.5}
+  if(cliente.telefono){doc.text(bt(cliente.telefono),14,cy);cy+=4.5}
+  if(cliente.tiktok){doc.text(bt('Ciudad: '+cliente.tiktok),14,cy);cy+=4.5}
+  if(cliente.direccion){doc.text(bt(cliente.direccion),14,cy);cy+=4.5}
 
-  const rows=lineas.map(l=>[l.producto,String(l.cantidad),money(l.precio),money(l.precio*l.cantidad)]);
+  const rows=lineas.map(l=>[bt(l.producto),String(l.cantidad),money(l.precio),money(l.precio*l.cantidad)]);
   doc.autoTable({
     startY:cy+6,
     head:[['Producto','Cant.','Precio Un.','Total']],
@@ -771,7 +794,7 @@ function generateInvoice(orderId){
     doc.autoTable({
       startY:payY+3,
       head:[['Fecha','Medio','Referencia','Valor']],
-      body:pagos.map(p=>[p.fecha,p.medio,p.referencia||'—',money(p.valor)]),
+      body:pagos.map(p=>[p.fecha,bt(p.medio),bt(p.referencia||'—'),money(p.valor)]),
       theme:'plain',
       styles:{font:bodyFont.family,fontStyle:'normal',fontSize:8.5,textColor:dark,cellPadding:2},
       headStyles:{font:titleFont.family,fontStyle:'bold',fillColor:[247,250,247],textColor:muted},
@@ -785,7 +808,7 @@ function generateInvoice(orderId){
 
   const pageHeight=doc.internal.pageSize.getHeight();
   setBodyFont('italic');doc.setFontSize(8.5);doc.setTextColor(...muted);
-  doc.text(cfg.mensaje||'',105,pageHeight-12,{align:'center'});
+  doc.text(bt(cfg.mensaje||''),105,pageHeight-12,{align:'center'});
 
   doc.save(`Factura_${o.id}.pdf`);
 }
@@ -1095,6 +1118,50 @@ async function ocrImage(dataUrl,onProgress){
   });
   return result.data&&result.data.text||'';
 }
+function preprocessImageForOcr(dataUrl){
+  // Convierte a escala de grises y binariza (umbral de Otsu) para eliminar ruido de fondo
+  // (por ejemplo, la textura de una caja de cartón detrás del ticket) antes del OCR.
+  return new Promise(resolve=>{
+    try{
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const canvas=document.createElement('canvas');
+          canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+          const ctx=canvas.getContext('2d');
+          ctx.drawImage(img,0,0);
+          const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+          const data=imgData.data;
+          const n=canvas.width*canvas.height;
+          const gray=new Uint8ClampedArray(n);
+          const hist=new Array(256).fill(0);
+          for(let i=0,p=0;i<data.length;i+=4,p++){
+            const g=Math.round(0.299*data[i]+0.587*data[i+1]+0.114*data[i+2]);
+            gray[p]=g;hist[g]++;
+          }
+          let sum=0;for(let t=0;t<256;t++)sum+=t*hist[t];
+          let sumB=0,wB=0,maxVar=0,threshold=127;
+          for(let t=0;t<256;t++){
+            wB+=hist[t];if(wB===0)continue;
+            const wF=n-wB;if(wF===0)break;
+            sumB+=t*hist[t];
+            const mB=sumB/wB,mF=(sum-sumB)/wF;
+            const varBetween=wB*wF*(mB-mF)*(mB-mF);
+            if(varBetween>maxVar){maxVar=varBetween;threshold=t}
+          }
+          for(let i=0,p=0;i<data.length;i+=4,p++){
+            const v=gray[p]>threshold?255:0;
+            data[i]=v;data[i+1]=v;data[i+2]=v;
+          }
+          ctx.putImageData(imgData,0,0);
+          resolve(canvas.toDataURL('image/png'));
+        }catch(e){console.error('preprocesamiento de imagen falló',e);resolve(dataUrl)}
+      };
+      img.onerror=()=>resolve(dataUrl);
+      img.src=dataUrl;
+    }catch(e){resolve(dataUrl)}
+  });
+}
 function parseMoneyToken(tok){
   let t=String(tok).replace(/[^\d.,]/g,'');
   if(!t)return 0;
@@ -1128,32 +1195,64 @@ function parseInvoiceText(text){
     proveedor=m?m[1].trim():provLine.replace(/proveedor|empresa|raz[oó]n social|vendedor/ig,'').replace(/[:\-]/g,'').trim();
   }
   if(!proveedor&&lines.length)proveedor=lines[0].slice(0,60);
-  const items=[];
-  const itemLineRegex=/^(\d{1,4})\s+(.{3,60}?)\s+([\d.,]{3,})\s*$/;
-  const priceToken=/^[\d][\d.,]*\d$/;
-  lines.forEach(line=>{
-    if(/^(fecha|proveedor|nit|total|subtotal|iva|factura|empresa|direcci[oó]n|tel[eé]fono|raz[oó]n|cliente|descuento)/i.test(line))return;
-    const m=line.match(itemLineRegex);
-    if(m){
-      const cantidad=Number(m[1]);
-      const descripcion=m[2].trim();
-      const precio=parseMoneyToken(m[3]);
-      if(cantidad>0&&cantidad<10000&&precio>0&&descripcion.length>1){items.push({producto:descripcion,cantidad,costo:precio});return}
-    }
-    const tokens=line.split(/\s+/);
-    if(tokens.length>=3){
-      const nums=[];
-      tokens.forEach((t,idx)=>{if(priceToken.test(t))nums.push({idx,val:t})});
-      if(nums.length>=2){
-        const qtyTok=nums[0],priceTok=nums[nums.length-1];
-        const qty=parseInt(qtyTok.val.replace(/\D/g,''),10);
-        const precio=parseMoneyToken(priceTok.val);
-        const descripcion=tokens.slice(qtyTok.idx+1,priceTok.idx).join(' ').trim();
-        if(qty>0&&qty<10000&&precio>0&&descripcion.length>1)items.push({producto:descripcion,cantidad:qty,costo:precio});
-      }
-    }
-  });
+  const items=parseInvoiceItemLines(lines);
   return {fecha,proveedor,items};
+}
+function invoiceStopLine(line){
+  return /^(fecha|proveedor|nit|total|subtotal|iva|factura|empresa|direcci[oó]n|tel[eé]fono|raz[oó]n|cliente|descuento|recibe|cambio|forma|efectivo|vendedor|software|gracias|bienvenido|hora|regimen|detalle|cant\.?$|cr\s|bogot)/i.test(line);
+}
+function extractInvoiceMoneyTokens(line){
+  // Encuentra montos tipo "$16,000" o "30.000" en la línea (al menos 3 dígitos).
+  const re=/\$?\s?(\d[\d.,]{2,})/g;
+  const out=[];let m;
+  while((m=re.exec(line))){
+    const digitsOnly=m[1].replace(/\D/g,'');
+    if(digitsOnly.length>=3)out.push({index:m.index,value:parseMoneyToken(m[1])});
+  }
+  return out;
+}
+function extractInvoiceLeadingQty(segment){
+  // La cantidad aparece al inicio del tramo (antes del precio), tolerando ruido de OCR
+  // delante (símbolos sueltos) y confusiones típicas de dígito/letra (1<->I/l/U, 0<->O).
+  const cleaned=segment.replace(/^[^A-Za-z0-9]+/,'');
+  const offset=segment.length-cleaned.length;
+  const m=cleaned.match(/^(\d{1,3}|[uUoOlI])(?=\s|$)/);
+  if(!m)return null;
+  const raw=m[1];
+  const letterMap={u:1,U:1,o:0,O:0,l:1,I:1};
+  const value=/^\d+$/.test(raw)?Number(raw):letterMap[raw];
+  if(value>0&&value<1000)return{value,index:offset,length:raw.length};
+  return null;
+}
+function parseInvoiceItemLines(lines){
+  const items=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    if(invoiceStopLine(line))continue;
+    const moneyTokens=extractInvoiceMoneyTokens(line);
+    if(!moneyTokens.length)continue;
+    const price=moneyTokens[moneyTokens.length-1]; // el monto de la derecha = total de la línea
+    if(price.value<=0)continue;
+    const beforePrice=line.slice(0,price.index);
+    const qty=extractInvoiceLeadingQty(beforePrice);
+    if(!qty)continue;
+    let descripcion=beforePrice.slice(qty.index+qty.length).trim();
+    descripcion=descripcion.replace(/^[^A-Za-zÁÉÍÓÚÑáéíóúñ]+/,'').trim();
+    // Los nombres largos de producto suelen partirse en la línea siguiente (sin precio propio);
+    // se reincorporan a la descripción si parecen continuación y no otro renglón de la factura.
+    let j=i+1;
+    while(j<lines.length){
+      const nextLine=lines[j];
+      if(!nextLine||invoiceStopLine(nextLine))break;
+      if(extractInvoiceMoneyTokens(nextLine).length)break;
+      if(nextLine.length<=30&&/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(nextLine)&&nextLine===nextLine.toUpperCase()){
+        descripcion=(descripcion+' '+nextLine).trim();j++;
+      }else break;
+    }
+    i=j-1;
+    if(descripcion.length>1&&qty.value>0)items.push({producto:descripcion,cantidad:qty.value,costo:price.value});
+  }
+  return items;
 }
 function findBestProductMatch(name){
   if(!name)return'';
@@ -1188,6 +1287,8 @@ async function handleSupplierInvoiceFile(event){
     }else{
       images=[await fileToDataUrl(file)];
     }
+    $('supplierProgressText').textContent='Optimizando imagen para lectura…';
+    images=await Promise.all(images.map(preprocessImageForOcr));
     let fullText='';
     for(let i=0;i<images.length;i++){
       $('supplierProgressText').textContent=`Leyendo página ${i+1} de ${images.length}…`;
