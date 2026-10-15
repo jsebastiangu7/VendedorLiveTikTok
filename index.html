@@ -129,7 +129,7 @@ td .ss-wrap,.field .ss-wrap{width:100%}
       <div class="field"><label>Fecha</label><input id="orderDate" type="date"></div>
       <div class="field"><label>Estado</label><select id="orderStatus"><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select></div>
     </div>
-    <div class="quick" style="margin:12px 0"><button class="btn" onclick="newClient()">+ Cliente</button><button class="btn" onclick="addLine()">+ Producto</button><button class="btn" onclick="clearOrder()">Limpiar</button></div>
+    <div class="quick" style="margin:12px 0"><button class="btn" onclick="newClient()">+ Cliente</button><button class="btn" onclick="addLine()">+ Producto</button><button class="btn" onclick="scanForSale()">📷 Escanear producto</button><button class="btn" onclick="clearOrder()">Limpiar</button></div>
     <div class="tablewrap"><table class="order-lines"><thead><tr><th style="min-width:260px">Producto</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th></tr></thead><tbody id="lineBody"></tbody></table></div>
     <div class="formgrid" style="margin-top:14px">
       <div class="field"><label>Abono recibido</label><input id="initialPayment" type="number" min="0" value="0"></div>
@@ -150,8 +150,8 @@ td .ss-wrap,.field .ss-wrap{width:100%}
 
 <section id="inventario" class="view">
   <h1>Inventario</h1><div class="subtitle">El stock vendido se calcula automáticamente a partir de los pedidos guardados.</div>
-  <div class="toolbar"><button class="btn primary" onclick="openProductModal()">+ Agregar producto / stock</button><button class="btn" onclick="openKitModal()">🎁 Kits</button><button class="btn" onclick="$('supplierInvoiceFile').click()">📄 Subir factura proveedor</button><input id="supplierInvoiceFile" type="file" accept="image/*,.pdf" style="display:none" onchange="handleSupplierInvoiceFile(event)"><input id="invSearch" placeholder="Buscar producto" oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">Todos</option><option>EN STOCK</option><option>REPOSICIÓN</option><option>AGOTADO</option></select><button class="btn" onclick="exportInventoryExcel()">⬇ Descargar Excel</button></div>
-  <div class="tablewrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Stock inicial</th><th>Vendido</th><th>Stock actual</th><th>Estado</th><th>Precio venta</th><th>Margen %</th><th>Fecha compra</th><th>Días</th><th>Acciones</th></tr></thead><tbody id="invBody"></tbody></table></div>
+  <div class="toolbar"><button class="btn primary" onclick="openProductModal()">+ Agregar producto / stock</button><button class="btn" onclick="openKitModal()">🎁 Kits</button><button class="btn" onclick="$('supplierInvoiceFile').click()">📄 Subir factura proveedor</button><button class="btn" onclick="scanInventory()">📷 Escanear código</button><input id="supplierInvoiceFile" type="file" accept="image/*,.pdf" style="display:none" onchange="handleSupplierInvoiceFile(event)"><input id="invSearch" placeholder="Buscar producto o código" oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">Todos</option><option>EN STOCK</option><option>REPOSICIÓN</option><option>AGOTADO</option></select><button class="btn" onclick="exportInventoryExcel()">⬇ Descargar Excel</button></div>
+  <div class="tablewrap"><table><thead><tr><th>Producto</th><th>Código</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Stock inicial</th><th>Vendido</th><th>Stock actual</th><th>Estado</th><th>Precio venta</th><th>Margen %</th><th>Fecha compra</th><th>Días</th><th>Acciones</th></tr></thead><tbody id="invBody"></tbody></table></div>
 </section>
 
 <section id="clientes" class="view">
@@ -364,12 +364,12 @@ function renderOrders(){
 function js(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
 function renderInventory(){
   const q=($('invSearch')?.value||'').toLowerCase(), f=$('invFilter')?.value||'';
-  const arr=state.inventory.map(p=>({...p,...stockInfo(p)})).filter(p=>(!q||p.producto.toLowerCase().includes(q))&&(!f||p.status===f));
+  const arr=state.inventory.map(p=>({...p,...stockInfo(p)})).filter(p=>(!q||p.producto.toLowerCase().includes(q)||String(p.codigo||'').toLowerCase().includes(q))&&(!f||p.status===f));
   $('invBody').innerHTML=arr.length?arr.map(p=>{
     const days=daysSince(p.fechaCompra);
     const diasTxt=days===null?'—':(days+' d'+(days>90?' ⚠':''));
-    return `<tr><td>${esc(p.producto)}</td><td>${esc(p.categoria)}</td><td>${money(p.costo)}</td><td>${money(p.envio)}</td><td>${p.stock}</td><td>${p.sold}</td><td>${p.current}</td><td>${pill(p.status)}</td><td>${money(p.precio)}</td><td>${margenPct(p).toFixed(1)}%</td><td>${esc(p.fechaCompra||'—')}</td><td>${diasTxt}</td><td class="action-row"><button class="btn" onclick="openEditProduct('${js(p.producto)}')">Modificar</button><button class="btn danger" onclick="deleteProduct('${js(p.producto)}')">Eliminar</button></td></tr>`;
-  }).join(''):'<tr><td colspan="13" class="empty">No hay productos en el inventario.</td></tr>';
+    return `<tr><td>${esc(p.producto)}</td><td>${esc(p.codigo||'—')}</td><td>${esc(p.categoria)}</td><td>${money(p.costo)}</td><td>${money(p.envio)}</td><td>${p.stock}</td><td>${p.sold}</td><td>${p.current}</td><td>${pill(p.status)}</td><td>${money(p.precio)}</td><td>${margenPct(p).toFixed(1)}%</td><td>${esc(p.fechaCompra||'—')}</td><td>${diasTxt}</td><td class="action-row"><button class="btn" onclick="openEditProduct('${js(p.producto)}')">Modificar</button><button class="btn danger" onclick="deleteProduct('${js(p.producto)}')">Eliminar</button></td></tr>`;
+  }).join(''):'<tr><td colspan="14" class="empty">No hay productos en el inventario.</td></tr>';
 }
 function deleteProduct(name){
   if(!confirm(`¿Confirmas que deseas eliminar el producto "${name}" del inventario?`))return;
@@ -488,8 +488,8 @@ function handleCategoryChange(select){
     select.value=state.categories[0]||'';
   }
 }
-function openProductModal(){
-  $('productAction').value='new';$('existingProductField').style.display='none';
+function openProductModal(prefillCode){
+  $('productAction').value='new';$('newProductCodigo').disabled=false;$('newProductCodigoBtn').disabled=false;$('newProductCodigo').value=prefillCode||'';$('existingProductField').style.display='none';
   $('newProductName').disabled=false;$('newProductCategory').disabled=false;$('newProductCost').disabled=false;$('newProductShipping').disabled=false;$('newProductPrice').disabled=false;$('newProductMin').disabled=false;$('newProductDate').disabled=false;
   $('newProductName').value='';$('newProductStock').value=0;$('newProductCost').value=0;$('newProductShipping').value=0;$('newProductPrice').value=0;$('newProductMin').value=1;$('newProductDate').value=today();
   fillCategorySelect($('newProductCategory'),'');
@@ -502,7 +502,7 @@ function closeProductModal(){$('productModal').classList.remove('open')}
 function toggleProductFields(){
   const stockMode=$('productAction').value==='stock';
   $('existingProductField').style.display=stockMode?'flex':'none';
-  $('newProductName').disabled=stockMode;$('newProductCategory').disabled=stockMode;$('newProductCost').disabled=stockMode;$('newProductShipping').disabled=stockMode;$('newProductPrice').disabled=stockMode;$('newProductMin').disabled=stockMode;$('newProductDate').disabled=stockMode;
+  $('newProductName').disabled=stockMode;$('newProductCategory').disabled=stockMode;$('newProductCost').disabled=stockMode;$('newProductShipping').disabled=stockMode;$('newProductPrice').disabled=stockMode;$('newProductMin').disabled=stockMode;$('newProductDate').disabled=stockMode;$('newProductCodigo').disabled=stockMode;$('newProductCodigoBtn').disabled=stockMode;
 }
 function saveProductModal(){
   const qty=Number($('newProductStock').value)||0;
@@ -516,9 +516,11 @@ function saveProductModal(){
   const name=$('newProductName').value.trim();
   if(!name){alert('Indica el nombre del producto.');return}
   if(state.inventory.some(p=>p.producto.toLowerCase()===name.toLowerCase())){alert('Ese producto ya existe. Usa "Adicionar stock".');return}
+  const codigoNuevo=$('newProductCodigo').value.trim();
+  if(codigoNuevo){const dup=findProductByCode(codigoNuevo);if(dup){alert(`Ese código de barras ya pertenece a "${dup.producto}". Un código solo puede asignarse a un producto.`);return}}
   const categoriaVal=$('newProductCategory').value==='__new__'?'':$('newProductCategory').value;
   state.inventory.push({
-    producto:name,categoria:categoriaVal,costo:Number($('newProductCost').value)||0,
+    producto:name,codigo:codigoNuevo,categoria:categoriaVal,costo:Number($('newProductCost').value)||0,
     envio:Number($('newProductShipping').value)||0,stock:qty,sold:0,precio:Number($('newProductPrice').value)||0,
     minimo:Number($('newProductMin').value)||0,fechaCompra:$('newProductDate').value||today()
   });
@@ -528,6 +530,7 @@ function openEditProduct(name){
   const p=state.inventory.find(x=>x.producto===name);if(!p)return;
   $('editProductOriginalName').value=p.producto;
   $('editProductName').value=p.producto;
+  $('editProductCodigo').value=p.codigo||'';
   fillCategorySelect($('editProductCategory'),p.categoria||'');
   $('editProductStock').value=p.stock||0;
   $('editProductCost').value=p.costo||0;
@@ -545,11 +548,14 @@ function saveEditProduct(){
   if(newName.toLowerCase()!==original.toLowerCase() && state.inventory.some(x=>x.producto.toLowerCase()===newName.toLowerCase())){alert('Ya existe otro producto con ese nombre.');return}
   const newStock=Number($('editProductStock').value)||0;
   if(newStock<0){alert('La cantidad no puede ser negativa.');return}
+  const newCode=$('editProductCodigo').value.trim();
+  if(newCode){const dup=findProductByCode(newCode);if(dup&&dup.producto!==original){alert(`Ese código de barras ya pertenece a "${dup.producto}". Un código solo puede asignarse a un producto.`);return}}
   if(newName!==original){
     state.orders.forEach(o=>(o.lineas||[]).forEach(l=>{if(l.producto===original)l.producto=newName}));
     state.kits.forEach(k=>(k.componentes||[]).forEach(c=>{if(c.producto===original)c.producto=newName}));
   }
   p.producto=newName;
+  p.codigo=newCode;
   p.categoria=$('editProductCategory').value==='__new__'?p.categoria:$('editProductCategory').value;
   p.stock=newStock;
   p.costo=Number($('editProductCost').value)||0;
@@ -904,7 +910,7 @@ function exportOrdersExcel(){
   downloadExcel('Pedidos.xlsx','Pedidos',rows);
 }
 function exportInventoryExcel(){
-  const rows=state.inventory.map(p=>{const info=stockInfo(p);return{Producto:p.producto,Categoria:p.categoria,Costo:Number(p.costo)||0,Envio:Number(p.envio)||0,'Stock inicial':p.stock,Vendido:info.sold,'Stock actual':info.current,Estado:info.status,'Precio venta':Number(p.precio)||0,'Margen %':Number(margenPct(p).toFixed(1)),'Fecha compra':p.fechaCompra||''}});
+  const rows=state.inventory.map(p=>{const info=stockInfo(p);return{Producto:p.producto,'Código de barras':p.codigo||'',Categoria:p.categoria,Costo:Number(p.costo)||0,Envio:Number(p.envio)||0,'Stock inicial':p.stock,Vendido:info.sold,'Stock actual':info.current,Estado:info.status,'Precio venta':Number(p.precio)||0,'Margen %':Number(margenPct(p).toFixed(1)),'Fecha compra':p.fechaCompra||''}});
   downloadExcel('Inventario.xlsx','Inventario',rows);
 }
 function exportClientsExcel(){
@@ -1401,6 +1407,188 @@ function confirmSupplierInvoice(){
   if(errores.length)msg+='\n\nAvisos:\n'+errores.join('\n');
   alert(msg);
 }
+/* ===== Códigos de barras (cámara) ===== */
+const normCode=c=>{c=String(c||'').trim();return /^\d+$/.test(c)?c.replace(/^0+(?=\d)/,''):c.toUpperCase()};
+function findProductByCode(code){
+  const n=normCode(code);if(!n)return null;
+  return state.inventory.find(p=>p.codigo&&normCode(p.codigo)===n)||null;
+}
+let scanState=null;
+function setScannerStatus(msg,isError){const el=$('scannerStatus');el.textContent=msg;el.style.color=isError?'#c0392b':''}
+function loadZXing(){
+  return new Promise((resolve,reject)=>{
+    if(window.ZXing)return resolve();
+    const sc=document.createElement('script');
+    sc.src='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+    sc.onload=()=>resolve();sc.onerror=()=>reject(new Error('zxing'));
+    document.head.appendChild(sc);
+  });
+}
+function initZXingReader(){
+  const hints=new Map();
+  const F=ZXing.BarcodeFormat;
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF,F.CODABAR,F.QR_CODE]);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+  const reader=new ZXing.MultiFormatReader();
+  reader.setHints(hints);
+  return reader;
+}
+function decodeFrameZXing(video,reader){
+  const scale=Math.min(1,900/video.videoWidth);
+  const w=Math.round(video.videoWidth*scale),h=Math.round(video.videoHeight*scale);
+  let cv=scanState.canvas;
+  if(!cv){cv=scanState.canvas=document.createElement('canvas')}
+  cv.width=w;cv.height=h;
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(video,0,0,w,h);
+  const d=ctx.getImageData(0,0,w,h).data;
+  const lum=new Uint8ClampedArray(w*h);
+  for(let i=0,p=0;i<d.length;i+=4,p++)lum[p]=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000;
+  const bitmap=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.RGBLuminanceSource(lum,w,h)));
+  try{return reader.decode(bitmap).getText()}catch(e){return ''}
+}
+async function openScanner(opts){
+  closeScanner();
+  scanState={opts,stream:null,timer:null,last:'',lastAt:0,detector:null,reader:null,busy:false,canvas:null};
+  const mine=scanState;
+  $('scannerTitle').textContent=opts.title||'Escanear código de barras';
+  $('scannerManual').value='';
+  setScannerStatus('Iniciando cámara…');
+  $('scannerModal').classList.add('open');
+  try{
+    if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('nocamera');
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(scanState!==mine){stream.getTracks().forEach(t=>t.stop());return}
+    mine.stream=stream;
+    const v=$('scannerVideo');v.srcObject=stream;await v.play();
+    if('BarcodeDetector' in window){
+      try{
+        const supported=await BarcodeDetector.getSupportedFormats();
+        const wanted=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','codabar','qr_code'].filter(f=>supported.includes(f));
+        if(wanted.length)mine.detector=new BarcodeDetector({formats:wanted});
+      }catch(e){mine.detector=null}
+    }
+    if(!mine.detector){await loadZXing();mine.reader=initZXingReader()}
+    if(scanState!==mine)return;
+    setScannerStatus(opts.continuous?'Apunta al código. La cámara sigue activa; presiona Cerrar al terminar.':'Apunta la cámara al código de barras…');
+    mine.timer=setInterval(scanTick,200);
+  }catch(err){
+    if(scanState!==mine)return;
+    let msg='No se pudo usar la cámara. Escribe el código manualmente.';
+    if(err&&err.name==='NotAllowedError')msg='Permiso de cámara denegado. Actívalo en el navegador o escribe el código manualmente.';
+    else if(err&&err.message==='nocamera')msg='La cámara requiere abrir la app por HTTPS (tu página de GitHub). Escribe el código manualmente.';
+    else if(err&&err.message==='zxing')msg='No se pudo cargar el lector de códigos (revisa tu conexión). Escribe el código manualmente.';
+    setScannerStatus(msg,true);
+  }
+}
+async function scanTick(){
+  const s=scanState;if(!s||s.busy)return;
+  const v=$('scannerVideo');if(v.readyState<2||!v.videoWidth)return;
+  s.busy=true;
+  try{
+    let code='';
+    if(s.detector){const r=await s.detector.detect(v);if(r.length)code=r[0].rawValue}
+    else if(s.reader)code=decodeFrameZXing(v,s.reader);
+    if(code&&scanState===s)handleScannedCode(code,false);
+  }catch(e){}
+  finally{s.busy=false}
+}
+function handleScannedCode(code,manual){
+  const s=scanState;if(!s)return;
+  code=String(code||'').trim();if(!code)return;
+  const now=Date.now();
+  if(!manual&&code===s.last&&now-s.lastAt<2000)return; // evita lecturas repetidas del mismo código
+  s.last=code;s.lastAt=now;
+  if(navigator.vibrate)try{navigator.vibrate(60)}catch(e){}
+  if(s.opts.continuous){
+    const res=s.opts.onCode(code);
+    if(res)setScannerStatus(res.text,res.error);
+  }else{
+    const cb=s.opts.onCode;closeScanner();cb(code);
+  }
+}
+function useManualScannerCode(){handleScannedCode($('scannerManual').value,true);$('scannerManual').value=''}
+function closeScanner(){
+  if(scanState){
+    clearInterval(scanState.timer);
+    if(scanState.stream)scanState.stream.getTracks().forEach(t=>t.stop());
+  }
+  scanState=null;
+  const v=$('scannerVideo');if(v){try{v.pause()}catch(e){}v.srcObject=null}
+  $('scannerModal').classList.remove('open');
+}
+function scanIntoField(inputId){
+  openScanner({title:'Escanear código del producto',onCode:code=>{
+    $(inputId).value=code;
+    const dup=findProductByCode(code);
+    const current=inputId==='editProductCodigo'?$('editProductOriginalName').value:'';
+    if(dup&&dup.producto!==current)alert(`Atención: ese código ya pertenece a "${dup.producto}". Un código solo puede asignarse a un producto.`);
+  }});
+}
+/* Inventario: escanear para sumar stock, modificar o vincular */
+function scanInventory(){openScanner({title:'Escanear producto',onCode:handleInventoryScan})}
+function handleInventoryScan(code){
+  $('scanResultCode').value=code;
+  const p=findProductByCode(code);
+  $('scanFound').style.display=p?'block':'none';
+  $('scanNotFound').style.display=p?'none':'block';
+  if(p){
+    $('scanResultTitle').textContent='Producto encontrado';
+    $('scanFoundInfo').textContent=`${p.producto} — Código ${code} — Stock actual: ${stockInfo(p).current} — Precio: ${money(p.precio)}`;
+    $('scanAddQty').value=1;
+    $('scanResultModal').dataset.product=p.producto;
+  }else{
+    $('scanResultTitle').textContent='Código no registrado: '+code;
+    const free=[...state.inventory].filter(x=>!x.codigo).sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
+    const sel=$('scanLinkProduct');
+    sel.innerHTML=free.length?free.map(x=>`<option value="${esc(x.producto)}">${esc(x.producto)}</option>`).join(''):'<option value="">No hay productos sin código</option>';
+    $('scanLinkBtn').disabled=!free.length;
+    enhanceSearchable(sel);
+  }
+  $('scanResultModal').classList.add('open');
+}
+function closeScanResult(){$('scanResultModal').classList.remove('open')}
+function scanAddStockFound(){
+  const p=state.inventory.find(x=>x.producto===$('scanResultModal').dataset.product);if(!p)return;
+  const qty=Number($('scanAddQty').value)||0;
+  if(qty<=0){alert('Indica una cantidad mayor a 0.');return}
+  p.stock=(Number(p.stock)||0)+qty;
+  persist();closeScanResult();refresh();alert(`Se adicionaron ${qty} unidades a ${p.producto}.`);
+}
+function scanEditFound(){const name=$('scanResultModal').dataset.product;closeScanResult();openEditProduct(name)}
+function scanLinkExisting(){
+  const name=$('scanLinkProduct').value,code=$('scanResultCode').value.trim();
+  const p=state.inventory.find(x=>x.producto===name);
+  if(!p){alert('Selecciona un producto.');return}
+  if(p.codigo){alert('Ese producto ya tiene un código de barras.');return}
+  const dup=findProductByCode(code);
+  if(dup){alert(`Ese código ya pertenece a "${dup.producto}".`);return}
+  p.codigo=code;persist();closeScanResult();refresh();alert(`Código ${code} vinculado a "${p.producto}".`);
+}
+function scanCreateNewFromCode(){const code=$('scanResultCode').value;closeScanResult();openProductModal(code)}
+/* Venta LIVE / edición de pedido: escaneo continuo que agrega líneas */
+function scanForSale(){
+  openScanner({title:'Escanear productos de la venta',continuous:true,onCode:addScannedProductToOrder});
+}
+function addScannedProductToOrder(code){
+  const p=findProductByCode(code);
+  if(!p)return{text:`Código ${code} no registrado. Vincúlalo desde Inventario > Escanear código.`,error:true};
+  const rows=[...document.querySelectorAll('#lineBody tr')];
+  let qty=1;
+  const same=rows.find(tr=>tr.querySelector('.lineProduct').value===p.producto);
+  if(same){
+    const q=same.querySelector('.lineQty');q.value=(Number(q.value)||0)+1;qty=Number(q.value);updateLiveTotals();
+  }else{
+    const empty=rows.find(tr=>!tr.querySelector('.lineProduct').value);
+    if(empty){
+      const sel=empty.querySelector('.lineProduct');sel.value=p.producto;lineChanged(sel);
+      if(sel._ssRefresh)sel._ssRefresh();
+    }else addLine(p.producto,1);
+  }
+  const disp=stockInfo(p).current;
+  const warn=disp<qty?` ⚠ Solo hay ${Math.max(0,disp)} en stock`:'';
+  return{text:`✔ ${p.producto} (cantidad ${qty})${warn}`,error:disp<qty};
+}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
 </script>
 
@@ -1411,6 +1599,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
       <div class="field"><label>Acción</label><select id="productAction" onchange="toggleProductFields()"><option value="new">Crear producto nuevo</option><option value="stock">Adicionar stock</option></select></div>
       <div class="field" id="existingProductField" style="display:none"><label>Producto existente</label><select id="existingProduct"></select></div>
       <div class="field"><label>Producto</label><input id="newProductName" placeholder="Nombre del producto"></div>
+      <div class="field"><label>Código de barras</label><div style="display:flex;gap:6px"><input id="newProductCodigo" placeholder="Opcional" style="flex:1;min-width:0"><button class="btn" type="button" id="newProductCodigoBtn" onclick="scanIntoField('newProductCodigo')">📷</button></div></div>
       <div class="field"><label>Categoría</label><select id="newProductCategory" onchange="handleCategoryChange(this)"></select></div>
       <div class="field"><label>Cantidad a agregar</label><input id="newProductStock" type="number" min="0" value="0"></div>
       <div class="field"><label>Costo</label><input id="newProductCost" type="number" min="0" value="0"></div>
@@ -1429,6 +1618,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
     <input type="hidden" id="editProductOriginalName">
     <div class="formgrid">
       <div class="field"><label>Producto</label><input id="editProductName"></div>
+      <div class="field"><label>Código de barras</label><div style="display:flex;gap:6px"><input id="editProductCodigo" placeholder="Opcional" style="flex:1;min-width:0"><button class="btn" type="button" onclick="scanIntoField('editProductCodigo')">📷</button></div></div>
       <div class="field"><label>Categoría</label><select id="editProductCategory" onchange="handleCategoryChange(this)"></select></div>
       <div class="field"><label>Cantidad (stock)</label><input id="editProductStock" type="number" min="0"></div>
       <div class="field"><label>Costo</label><input id="editProductCost" type="number" min="0"></div>
@@ -1489,6 +1679,37 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
       <table class="order-lines"><thead><tr><th style="width:36px"></th><th style="min-width:230px">Producto</th><th style="width:110px">Cantidad</th><th style="width:120px">Costo unit.</th><th style="width:110px">Envío unit.</th><th style="width:120px">Precio venta</th><th style="width:70px">Actualizar costo</th><th></th></tr></thead><tbody id="supplierItemsBody"></tbody></table>
     </div>
     <div class="modal-actions"><button class="btn" onclick="closeSupplierInvoiceModal()">Cancelar</button><button class="btn primary" onclick="confirmSupplierInvoice()">Confirmar y actualizar inventario</button></div>
+  </div>
+</div>
+<div id="scannerModal" class="modal-backdrop" style="z-index:200">
+  <div class="modal" style="width:min(480px,calc(100% - 30px))">
+    <h2 id="scannerTitle">Escanear código de barras</h2>
+    <div style="position:relative;background:#000;border-radius:10px;overflow:hidden">
+      <video id="scannerVideo" playsinline muted style="width:100%;display:block;max-height:48vh;object-fit:cover"></video>
+      <div style="position:absolute;left:8%;right:8%;top:50%;height:2px;background:#e74c3c;opacity:.8;pointer-events:none"></div>
+    </div>
+    <div class="note" id="scannerStatus" style="margin-top:8px;min-height:18px">Iniciando cámara…</div>
+    <div class="field" style="margin-top:10px"><label>O escribe / pega el código</label>
+      <div style="display:flex;gap:6px"><input id="scannerManual" inputmode="text" autocomplete="off" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter'){event.preventDefault();useManualScannerCode()}"><button class="btn" type="button" onclick="useManualScannerCode()">Usar</button></div>
+    </div>
+    <div class="modal-actions"><button class="btn primary" onclick="closeScanner()">Cerrar</button></div>
+  </div>
+</div>
+
+<div id="scanResultModal" class="modal-backdrop" onclick="if(event.target===this)closeScanResult()">
+  <div class="modal">
+    <h2 id="scanResultTitle">Código escaneado</h2>
+    <input type="hidden" id="scanResultCode">
+    <div id="scanFound" style="display:none">
+      <div class="note" id="scanFoundInfo"></div>
+      <div class="field" style="margin-top:10px"><label>Cantidad a adicionar al stock</label><input id="scanAddQty" type="number" min="1" value="1"></div>
+      <div class="modal-actions"><button class="btn" onclick="closeScanResult()">Cancelar</button><button class="btn" onclick="scanEditFound()">Modificar producto</button><button class="btn primary" onclick="scanAddStockFound()">Sumar stock</button></div>
+    </div>
+    <div id="scanNotFound" style="display:none">
+      <div class="note">Este código aún no está asociado a ningún producto. Puedes vincularlo a un producto existente que no tenga código, o crear un producto nuevo con este código.</div>
+      <div class="field" style="margin-top:10px"><label>Vincular a producto existente</label><select id="scanLinkProduct"></select></div>
+      <div class="modal-actions"><button class="btn" onclick="closeScanResult()">Cancelar</button><button class="btn" onclick="scanCreateNewFromCode()">Crear producto nuevo</button><button class="btn primary" id="scanLinkBtn" onclick="scanLinkExisting()">Vincular código</button></div>
+    </div>
   </div>
 </div>
 </body>
