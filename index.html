@@ -22,6 +22,8 @@ nav{display:flex;gap:6px;overflow:auto;flex:1}nav button{border:0;background:tra
 .icon-group button svg{width:16px;height:16px;display:block}
 .icon-group button.active{background:var(--primary-light);color:var(--primary)}
 main{max-width:1500px;margin:0 auto;padding:22px}
+.legal-doc{max-width:860px;line-height:1.6}.legal-doc h2{margin:6px 0 2px;font-size:22px}.legal-doc h3{margin:18px 0 2px;font-size:16px;color:var(--primary)}.legal-doc p,.legal-doc li{margin:5px 0}.legal-doc ul{padding-left:22px}.legal-doc .meta{color:var(--muted);font-size:13px}.legal-doc code{background:var(--thead-bg);padding:1px 6px;border-radius:5px;font-size:12.5px;word-break:break-all}.legal-doc a{color:var(--primary)}
+.app-footer{max-width:1500px;margin:0 auto;padding:6px 22px 30px;color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap}.app-footer a{color:var(--primary);text-decoration:none}.app-footer a:hover{text-decoration:underline}
 .view{display:none}.view.active{display:block}
 h1{font-size:25px;margin:0 0 5px;color:var(--ink)}.subtitle{color:var(--muted);margin-bottom:20px}
 .grid{display:grid;gap:14px}.cards{grid-template-columns:repeat(5,minmax(150px,1fr));}.cards3{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
@@ -198,7 +200,16 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     <div class="note" style="margin-top:6px">Nota técnica: Arial (sustituida por Inter), Nunito, Montserrat, Perfect Lemonade, Sweetbliss Personal Use y Shortcake Strawberry están incrustadas de verdad en el PDF a partir de los archivos que proporcionaste y se ven correctamente con tildes y ñ. "Mochibop" también está incrustada, pero muestra las tildes y la ñ sin su acento visual (limitación de diseño de esa fuente demo). Se retiraron "Comic Sans", "Century Gothic" y "Bubblegum Bliss" de la lista por no tener un archivo utilizable (sin archivo disponible, archivo de prueba con los números inutilizados, o sin soporte de tildes/ñ que cortaba el texto).</div>
   </div>
 </section>
+<section id="legal" class="view">
+  <h1>Legal</h1><div class="subtitle">Política de privacidad y términos de servicio de la Aplicación.</div>
+  <div class="panel">
+    <div class="toolbar"><button class="btn primary" id="legalBtnPrivacy" onclick="setLegalDoc('privacy')">Política de privacidad</button><button class="btn" id="legalBtnTerms" onclick="setLegalDoc('terms')">Términos de servicio</button><select id="legalLang" onchange="renderLegal()"><option value="es">Español</option><option value="en">English</option></select></div>
+    <div id="legalContent" class="legal-doc"></div>
+    <div class="note" style="margin-top:14px">Versiones públicas (para Google y tus clientes): <a href="privacidad.html" target="_blank" rel="noopener">privacidad.html</a> · <a href="terminos.html" target="_blank" rel="noopener">terminos.html</a>. Súbelos a la misma carpeta de GitHub Pages que este archivo.</div>
+  </div>
+</section>
 </main>
+<footer class="app-footer"><span>© JSGU</span><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a><a href="terminos.html" target="_blank" rel="noopener">Términos de servicio</a></footer>
 
 <script>
 const KEY='gestorVentasLiveTikTok_v2';
@@ -240,7 +251,7 @@ function refresh(){
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
 }
 function navInit(){
-  const items=[['dashboard','Dashboard'],['venta','Venta LIVE'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación']];
+  const items=[['dashboard','Dashboard'],['venta','Venta LIVE'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación'],['legal','Legal']];
   $('nav').innerHTML=items.map(([id,t],i)=>`<button class="${i===0?'active':''}" data-view="${id}">${t}</button>`).join('');
   document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
   $('navMobile').innerHTML=items.map(([id,t])=>`<option value="${id}">${t}</option>`).join('');
@@ -1589,7 +1600,222 @@ function addScannedProductToOrder(code){
   const warn=disp<qty?` ⚠ Solo hay ${Math.max(0,disp)} en stock`:'';
   return{text:`✔ ${p.producto} (cantidad ${qty})${warn}`,error:disp<qty};
 }
-navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();
+const LEGAL_DOCS={privacy:{es:`<h2>Política de Privacidad</h2>
+<p class="meta">Última actualización: 20 de octubre de 2026</p>
+
+<h3>1. Quiénes somos y alcance</h3>
+<p><strong>Gestor de Ventas LIVE TikTok</strong> (la «Aplicación») es una herramienta web para gestionar ventas en vivo, inventario, clientes, pedidos, abonos y facturas en PDF. Es operada por <strong>JSGU</strong> (Colombia) («nosotros»). Esta política explica qué información maneja la Aplicación, cómo se usa y qué opciones tienes. Contacto: <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
+
+<h3>2. Información que maneja la Aplicación</h3>
+<ul>
+<li><strong>Datos que tú ingresas:</strong> productos, costos, precios y existencias; clientes (nombre, teléfono, ciudad, dirección y notas); pedidos, abonos y kits; y los datos de tu empresa para las facturas (nombre, NIT, teléfono, correo, dirección, mensaje, logo y marca de agua).</li>
+<li><strong>Datos de tu cuenta de Google (solo si conectas Google Drive):</strong> la Aplicación obtiene un permiso de acceso para guardar y leer su archivo de datos en tu Drive (ver sección 3). No lee tu nombre, correo, contactos ni otros archivos.</li>
+<li><strong>Cámara y archivos:</strong> si usas el escaneo de códigos de barras o «Subir factura proveedor», la cámara o el archivo que eliges se procesan <strong>localmente en tu dispositivo</strong>. El video, las imágenes y los documentos no se envían a nosotros ni se almacenan fuera de tu dispositivo.</li>
+<li><strong>Preferencias de interfaz:</strong> tema claro/oscuro y tipo de pantalla, guardados en tu navegador.</li>
+</ul>
+<p>La Aplicación <strong>no</strong> tiene cuentas de usuario propias ni contraseñas, <strong>no</strong> usa analítica ni publicidad y <strong>no</strong> instala cookies propias. No tenemos servidores que reciban tus datos: la Aplicación se ejecuta en tu navegador.</p>
+
+<h3>3. Datos de usuario de Google y permiso solicitado</h3>
+<p>Si decides conectar Google Drive, la Aplicación solicita únicamente el permiso <code>https://www.googleapis.com/auth/drive.file</code>. Este permiso solo da acceso a los archivos que la propia Aplicación crea o que abres con ella.</p>
+<ul>
+<li><strong>Para qué lo usamos:</strong> crear, leer y actualizar un único archivo, <code>gestor-live-tiktok-data.json</code>, que contiene tus datos de la Aplicación, para que puedas continuar en otro dispositivo con la misma cuenta de Google.</li>
+<li><strong>Qué no hacemos:</strong> no accedemos a ningún otro archivo de tu Drive, ni a tu correo, calendario, contactos o información de perfil.</li>
+<li><strong>Token de acceso:</strong> se mantiene en la memoria de tu navegador mientras usas la Aplicación. En tu navegador solo se guarda un indicador (sin credenciales) para intentar reconectarte automáticamente.</li>
+</ul>
+
+<h3>4. Cómo usamos la información</h3>
+<p>Solo para ofrecer las funciones de la Aplicación, ejecutadas en tu propio navegador. No vendemos, alquilamos ni compartimos tu información; no la usamos para publicidad ni para entrenar modelos de inteligencia artificial o aprendizaje automático; y ninguna persona de nuestro equipo la lee, porque no la recibimos.</p>
+
+<h3>5. Cumplimiento de la Política de Datos de Usuario de las API de Google (Uso Limitado)</h3>
+<p>El uso y la transferencia a cualquier otra aplicación de la información recibida de las API de Google se ajustarán a la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de Datos de Usuario de los Servicios de las API de Google</a>, incluidos los requisitos de Uso Limitado. En particular: (a) usamos los datos de Google solo para proporcionar y mejorar las funciones visibles para ti de la Aplicación; (b) no los transferimos a terceros; (c) no los usamos para publicidad; y (d) no permitimos que personas los lean.</p>
+
+<h3>6. Almacenamiento y seguridad</h3>
+<p>Tus datos se guardan en el almacenamiento local de tu navegador y, si conectas Drive, en tu propio Google Drive. Las comunicaciones con Google usan HTTPS. La seguridad final depende de tu dispositivo y de tu cuenta de Google: evita usar equipos compartidos, mantén tu cuenta protegida (por ejemplo, con verificación en dos pasos) y cierra sesión al terminar en equipos ajenos.</p>
+
+<h3>7. Servicios de terceros</h3>
+<ul>
+<li><strong>Google</strong> (Google Identity Services y Google Drive API), sujeto a las políticas de Google.</li>
+<li><strong>Redes de entrega de contenido (CDN)</strong> como cdnjs.cloudflare.com, cdn.jsdelivr.net, apis.google.com y accounts.google.com, desde donde se cargan las librerías de la Aplicación (generación de PDF, Excel, OCR y lectura de códigos de barras). Estos proveedores pueden recibir datos técnicos de tu navegador, como tu dirección IP.</li>
+<li><strong>OCR:</strong> el reconocimiento de texto se ejecuta en tu navegador; solo se descargan desde el CDN los archivos de idioma. Tus documentos no se suben.</li>
+</ul>
+
+<h3>8. Conservación y eliminación</h3>
+<p>Tus datos permanecen hasta que los elimines. Para borrarlos: (a) elimina el archivo <code>gestor-live-tiktok-data.json</code> de tu Google Drive; (b) borra los datos del sitio en tu navegador; y (c) revoca el acceso de la Aplicación en <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">https://myaccount.google.com/permissions</a>. Como no conservamos copia, no podemos recuperar datos eliminados.</p>
+
+<h3>9. Datos personales de tus clientes</h3>
+<p>Si registras datos de terceros (por ejemplo, tus clientes), tú eres quien decide para qué se usan y, por tanto, el responsable de su tratamiento conforme a la Ley 1581 de 2012 y el Decreto 1377 de 2013 de Colombia, o la norma que te sea aplicable. Debes contar con su autorización cuando corresponda. JSGU no accede a esos datos.</p>
+
+<h3>10. Tus derechos</h3>
+<p>Puedes consultar, corregir o eliminar tus datos directamente en la Aplicación o en tu Drive en cualquier momento. Para cualquier solicitud o duda sobre esta política, escríbenos a <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
+
+<h3>11. Menores de edad</h3>
+<p>La Aplicación no está dirigida a menores de 18 años y no recopilamos intencionalmente información de menores.</p>
+
+<h3>12. Cambios a esta política</h3>
+<p>Podemos actualizar esta política. Publicaremos la versión vigente en esta misma página con su fecha de actualización.</p>
+
+<h3>13. Contacto</h3>
+<p><a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a></p>`,en:`<h2>Privacy Policy</h2>
+<p class="meta">Last updated: October 20, 2026</p>
+
+<h3>1. Who we are and scope</h3>
+<p><strong>Gestor de Ventas LIVE TikTok</strong> (the “App”) is a web tool for managing live-selling sales, inventory, customers, orders, payments and PDF invoices. It is operated by <strong>JSGU</strong> (Colombia) (“we”). This policy explains what information the App handles, how it is used and the choices you have. Contact: <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
+
+<h3>2. Information the App handles</h3>
+<ul>
+<li><strong>Data you enter:</strong> products, costs, prices and stock; customers (name, phone, city, address and notes); orders, payments and kits; and your business details for invoices (name, tax ID, phone, email, address, message, logo and watermark).</li>
+<li><strong>Google account data (only if you connect Google Drive):</strong> the App obtains an access permission to save and read its data file in your Drive (see section 3). It does not read your name, email, contacts or any other files.</li>
+<li><strong>Camera and files:</strong> if you use barcode scanning or “Upload supplier invoice”, the camera feed or the file you choose is processed <strong>locally on your device</strong>. Video, images and documents are not sent to us or stored outside your device.</li>
+<li><strong>Interface preferences:</strong> light/dark theme and screen type, stored in your browser.</li>
+</ul>
+<p>The App has <strong>no</strong> user accounts or passwords of its own, uses <strong>no</strong> analytics or advertising, and sets <strong>no</strong> first-party cookies. We operate no servers that receive your data: the App runs in your browser.</p>
+
+<h3>3. Google user data and requested scope</h3>
+<p>If you choose to connect Google Drive, the App requests only the scope <code>https://www.googleapis.com/auth/drive.file</code>. This scope only grants access to files that the App itself creates or that you open with it.</p>
+<ul>
+<li><strong>What we use it for:</strong> to create, read and update a single file, <code>gestor-live-tiktok-data.json</code>, containing your App data, so you can continue on another device with the same Google account.</li>
+<li><strong>What we do not do:</strong> we do not access any other file in your Drive, nor your email, calendar, contacts or profile information.</li>
+<li><strong>Access token:</strong> kept in your browser's memory while you use the App. Only a flag (no credentials) is stored in your browser to attempt automatic reconnection.</li>
+</ul>
+
+<h3>4. How we use information</h3>
+<p>Only to provide the App's features, executed in your own browser. We do not sell, rent or share your information; we do not use it for advertising or to train artificial-intelligence or machine-learning models; and no one on our team reads it, because we never receive it.</p>
+
+<h3>5. Compliance with the Google API Services User Data Policy (Limited Use)</h3>
+<p>The App's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements. Specifically: (a) we use Google user data only to provide or improve user-facing features of the App; (b) we do not transfer it to third parties; (c) we do not use it for advertising; and (d) we do not allow humans to read it.</p>
+
+<h3>6. Storage and security</h3>
+<p>Your data is stored in your browser's local storage and, if you connect Drive, in your own Google Drive. Communications with Google use HTTPS. Ultimate security depends on your device and Google account: avoid shared computers, keep your account protected (for example, with 2-step verification) and sign out when finished on devices that are not yours.</p>
+
+<h3>7. Third-party services</h3>
+<ul>
+<li><strong>Google</strong> (Google Identity Services and Google Drive API), subject to Google's policies.</li>
+<li><strong>Content delivery networks (CDNs)</strong> such as cdnjs.cloudflare.com, cdn.jsdelivr.net, apis.google.com and accounts.google.com, from which the App loads its libraries (PDF, Excel, OCR and barcode reading). These providers may receive technical data from your browser, such as your IP address.</li>
+<li><strong>OCR:</strong> text recognition runs in your browser; only language files are downloaded from the CDN. Your documents are not uploaded.</li>
+</ul>
+
+<h3>8. Retention and deletion</h3>
+<p>Your data remains until you delete it. To delete it: (a) remove the file <code>gestor-live-tiktok-data.json</code> from your Google Drive; (b) clear the site data in your browser; and (c) revoke the App's access at <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">https://myaccount.google.com/permissions</a>. Since we keep no copy, we cannot recover deleted data.</p>
+
+<h3>9. Personal data of your customers</h3>
+<p>If you record data about third parties (for example, your customers), you decide how it is used and are therefore responsible for its processing under Colombian Law 1581 of 2012 and Decree 1377 of 2013, or whatever law applies to you. You must obtain their authorization where required. JSGU does not access that data.</p>
+
+<h3>10. Your rights</h3>
+<p>You can view, correct or delete your data directly in the App or in your Drive at any time. For any request or question about this policy, write to <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
+
+<h3>11. Children</h3>
+<p>The App is not directed to children under 18 and we do not knowingly collect information from minors.</p>
+
+<h3>12. Changes to this policy</h3>
+<p>We may update this policy. The current version will be published on this page with its update date.</p>
+
+<h3>13. Contact</h3>
+<p><a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a></p>`},terms:{es:`<h2>Términos de Servicio</h2>
+<p class="meta">Última actualización: 20 de octubre de 2026</p>
+
+<h3>1. Aceptación</h3>
+<p>Al usar <strong>Gestor de Ventas LIVE TikTok</strong> (la «Aplicación»), operada por <strong>JSGU</strong> (Colombia), aceptas estos Términos. Si no estás de acuerdo, no uses la Aplicación.</p>
+
+<h3>2. Descripción del servicio</h3>
+<p>La Aplicación es una herramienta web que se ejecuta en tu navegador para gestionar ventas en vivo, inventario, clientes, pedidos, abonos y facturas en PDF, con sincronización opcional de tus datos con tu Google Drive. Se ofrece gratuitamente y puede cambiar o dejar de estar disponible.</p>
+
+<h3>3. Tus responsabilidades</h3>
+<ul>
+<li>Ingresar información veraz y mantenerla actualizada.</li>
+<li>Cumplir las leyes aplicables a tu actividad comercial, tributaria y de protección de datos, incluida la autorización de tus clientes para tratar sus datos personales.</li>
+<li>Proteger tu dispositivo y tu cuenta de Google.</li>
+<li>No usar la Aplicación para fines ilícitos ni para intentar vulnerar su funcionamiento o el de los servicios de terceros que utiliza.</li>
+</ul>
+
+<h3>4. Facturas y documentos generados</h3>
+<p>Los PDF generados por la Aplicación son documentos informativos de tu operación. <strong>No constituyen una factura electrónica de venta validada por la DIAN</strong> ni sustituyen tus obligaciones de facturación o tributarias; eres responsable de cumplirlas con los mecanismos que la ley exija.</p>
+
+<h3>5. Cuenta de Google y Google Drive</h3>
+<p>La sincronización usa tu cuenta de Google y el permiso <code>drive.file</code>. El uso de Google está sujeto a los términos de Google. Puedes revocar el acceso en cualquier momento en <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">https://myaccount.google.com/permissions</a>. Consulta nuestra <a href="privacidad.html">Política de Privacidad</a>.</p>
+
+<h3>6. Copias de seguridad y pérdida de datos</h3>
+<p>Tus datos se guardan en tu navegador y, opcionalmente, en tu Drive; no conservamos copia. Eres responsable de respaldar tu información (por ejemplo, con las descargas a Excel). Borrar los datos del navegador o el archivo de Drive puede causar pérdida permanente.</p>
+
+<h3>7. Funciones aproximadas</h3>
+<p>El reconocimiento de texto (OCR) de facturas de proveedor y la lectura de códigos de barras son aproximados y pueden contener errores. Debes revisar la información antes de confirmarla; la Aplicación actualiza tu inventario solo después de tu confirmación.</p>
+
+<h3>8. Propiedad intelectual</h3>
+<p>El software y el diseño de la Aplicación pertenecen a JSGU. Los datos que ingresas, tu logo y tus imágenes siguen siendo tuyos. Las librerías y fuentes de terceros se rigen por sus propias licencias.</p>
+
+<h3>9. Garantías</h3>
+<p>La Aplicación se ofrece «tal cual» y «según disponibilidad», sin garantías de ningún tipo, expresas o implícitas, incluida la ausencia de errores, la disponibilidad continua o la idoneidad para un fin particular.</p>
+
+<h3>10. Limitación de responsabilidad</h3>
+<p>En la medida permitida por la ley, JSGU no será responsable por pérdidas de datos, ventas, ingresos u otros daños indirectos o consecuenciales derivados del uso o de la imposibilidad de usar la Aplicación, ni por fallos de servicios de terceros como Google o las redes de entrega de contenido.</p>
+
+<h3>11. Terminación</h3>
+<p>Puedes dejar de usar la Aplicación en cualquier momento. Podemos modificarla, suspenderla o retirarla sin previo aviso.</p>
+
+<h3>12. Cambios a estos Términos</h3>
+<p>Podemos actualizar estos Términos; la versión vigente se publicará en esta página con su fecha. El uso continuado implica aceptación de los cambios.</p>
+
+<h3>13. Ley aplicable</h3>
+<p>Estos Términos se rigen por las leyes de la República de Colombia.</p>
+
+<h3>14. Contacto</h3>
+<p><a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a></p>`,en:`<h2>Terms of Service</h2>
+<p class="meta">Last updated: October 20, 2026</p>
+
+<h3>1. Acceptance</h3>
+<p>By using <strong>Gestor de Ventas LIVE TikTok</strong> (the “App”), operated by <strong>JSGU</strong> (Colombia), you accept these Terms. If you do not agree, do not use the App.</p>
+
+<h3>2. Description of the service</h3>
+<p>The App is a web tool that runs in your browser to manage live-selling sales, inventory, customers, orders, payments and PDF invoices, with optional synchronization of your data to your Google Drive. It is offered free of charge and may change or become unavailable.</p>
+
+<h3>3. Your responsibilities</h3>
+<ul>
+<li>Enter truthful information and keep it up to date.</li>
+<li>Comply with the laws applicable to your business, tax and data-protection activities, including obtaining your customers' authorization to process their personal data.</li>
+<li>Protect your device and your Google account.</li>
+<li>Not use the App for unlawful purposes or to attempt to compromise its operation or that of the third-party services it uses.</li>
+</ul>
+
+<h3>4. Invoices and generated documents</h3>
+<p>PDFs generated by the App are informational documents for your operation. <strong>They are not electronic sales invoices validated by the Colombian tax authority (DIAN)</strong> and do not replace your invoicing or tax obligations; you are responsible for meeting them through the mechanisms required by law.</p>
+
+<h3>5. Google account and Google Drive</h3>
+<p>Synchronization uses your Google account and the <code>drive.file</code> scope. Use of Google is subject to Google's terms. You can revoke access at any time at <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">https://myaccount.google.com/permissions</a>. See our <a href="privacidad.html">Privacy Policy</a>.</p>
+
+<h3>6. Backups and data loss</h3>
+<p>Your data is stored in your browser and, optionally, in your Drive; we keep no copy. You are responsible for backing up your information (for example, with the Excel downloads). Clearing browser data or deleting the Drive file may cause permanent loss.</p>
+
+<h3>7. Approximate features</h3>
+<p>Text recognition (OCR) of supplier invoices and barcode reading are approximate and may contain errors. You must review the information before confirming it; the App updates your inventory only after your confirmation.</p>
+
+<h3>8. Intellectual property</h3>
+<p>The App's software and design belong to JSGU. The data you enter, your logo and your images remain yours. Third-party libraries and fonts are governed by their own licenses.</p>
+
+<h3>9. Warranties</h3>
+<p>The App is provided “as is” and “as available”, without warranties of any kind, express or implied, including freedom from errors, continuous availability or fitness for a particular purpose.</p>
+
+<h3>10. Limitation of liability</h3>
+<p>To the extent permitted by law, JSGU will not be liable for loss of data, sales, revenue or other indirect or consequential damages arising from the use of, or inability to use, the App, nor for failures of third-party services such as Google or content delivery networks.</p>
+
+<h3>11. Termination</h3>
+<p>You may stop using the App at any time. We may modify, suspend or withdraw it without notice.</p>
+
+<h3>12. Changes to these Terms</h3>
+<p>We may update these Terms; the current version will be published on this page with its date. Continued use means you accept the changes.</p>
+
+<h3>13. Governing law</h3>
+<p>These Terms are governed by the laws of the Republic of Colombia.</p>
+
+<h3>14. Contact</h3>
+<p><a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a></p>`}};
+let legalDoc='privacy';
+function setLegalDoc(k){legalDoc=k;renderLegal()}
+function renderLegal(){
+  const lang=$('legalLang').value;
+  $('legalContent').innerHTML=LEGAL_DOCS[legalDoc][lang];
+  $('legalBtnPrivacy').className='btn'+(legalDoc==='privacy'?' primary':'');
+  $('legalBtnTerms').className='btn'+(legalDoc==='terms'?' primary':'');
+}
+navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal();
 </script>
 
 <div id="productModal" class="modal-backdrop" onclick="if(event.target===this)closeProductModal()">
