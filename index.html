@@ -205,7 +205,6 @@ td .ss-wrap,.field .ss-wrap{width:100%}
   <div class="panel">
     <div class="toolbar"><button class="btn primary" id="legalBtnPrivacy" onclick="setLegalDoc('privacy')">Política de privacidad</button><button class="btn" id="legalBtnTerms" onclick="setLegalDoc('terms')">Términos de servicio</button><select id="legalLang" onchange="renderLegal()"><option value="es">Español</option><option value="en">English</option></select></div>
     <div id="legalContent" class="legal-doc"></div>
-    <div class="note" style="margin-top:14px">Versiones públicas (para Google y tus clientes): <a href="privacidad.html" target="_blank" rel="noopener">privacidad.html</a> · <a href="terminos.html" target="_blank" rel="noopener">terminos.html</a>. Súbelos a la misma carpeta de GitHub Pages que este archivo.</div>
   </div>
 </section>
 </main>
@@ -476,9 +475,25 @@ function newClient(){
 }
 function editClient(name){
   const c=state.clients.find(x=>x.nombre===name);if(!c)return;
-  const telefono=prompt('WhatsApp / teléfono:',c.telefono)||c.telefono;
-  const tiktok=prompt('Ciudad:',c.tiktok)||c.tiktok;
-  const direccion=prompt('Dirección:',c.direccion)||c.direccion;
+  const nuevoNombre=prompt('Nombre del cliente:',c.nombre);
+  if(nuevoNombre===null)return; // cancelar
+  const nombre=nuevoNombre.trim();
+  if(!nombre){alert('El nombre del cliente no puede quedar vacío.');return}
+  if(state.clients.some(x=>x!==c&&x.nombre.toLowerCase()===nombre.toLowerCase())){alert('Ya existe otro cliente con ese nombre.');return}
+  const ask=(label,cur)=>{const v=prompt(label,cur||'');return v===null?(cur||''):v.trim()};
+  const telefono=ask('WhatsApp / teléfono:',c.telefono);
+  const tiktok=ask('Ciudad:',c.tiktok);
+  const direccion=ask('Dirección:',c.direccion);
+  if(nombre!==c.nombre){
+    // el nombre es el vínculo con pedidos y abonos: se actualiza en todos para no perder el historial
+    const viejo=c.nombre;
+    state.orders.forEach(o=>{if(o.cliente===viejo)o.cliente=nombre});
+    state.payments.forEach(p=>{if(p.cliente===viejo)p.cliente=nombre});
+    const selected=$('orderClient').value===viejo;
+    c.nombre=nombre;
+    persist();refresh();
+    if(selected)$('orderClient').value=nombre,$('orderClient')._ssRefresh&&$('orderClient')._ssRefresh();
+  }
   c.telefono=telefono;c.tiktok=tiktok;c.direccion=direccion;persist();refresh();
 }
 function fillCategorySelect(select,selected){
