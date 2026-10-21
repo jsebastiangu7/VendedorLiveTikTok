@@ -238,7 +238,7 @@ function scheduleDriveSync(){
   if(!driveAccessToken){updateAutoSaveStatus('Guardado localmente');return}
   updateAutoSaveStatus('Sincronizando con Drive…');
   clearTimeout(autoSyncTimer);
-  autoSyncTimer=setTimeout(async()=>{await driveSaveData();updateAutoSaveStatus('Guardado automático ✓ '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}))},1500);
+  autoSyncTimer=setTimeout(async()=>{const ok=await driveSaveData();updateAutoSaveStatus(ok?'Guardado automático ✓ '+new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}):'Guardado localmente — Drive no sincronizó')},1500);
 }
 
 function saveAll(){
@@ -833,6 +833,7 @@ const DRIVE_CLIENT_ID='577413187819-72ieaitdj5mcgohg4s7n27q8gi1rqbrf.apps.google
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILENAME='gestor-live-tiktok-data.json';
 let driveTokenClient=null, driveAccessToken=null, driveFileId=null, gapiReady=false, silentAttempt=false;
+let driveTokenExpiresAt=0, driveSilentRenewal=false, driveRenewPromise=null, driveRenewResolve=null, driveRenewTimeout=null, driveLastRetryAt=0;
 
 function initDrive(){
   if(!window.gapi||!window.google){setTimeout(initDrive,300);return}
@@ -850,22 +851,62 @@ function initDrive(){
     client_id:DRIVE_CLIENT_ID,
     scope:DRIVE_SCOPE,
     callback:async(resp)=>{
+      const wasRenew=driveSilentRenewal;driveSilentRenewal=false;
       if(resp.error){
-        if(!silentAttempt)alert('No se pudo conectar con Google Drive.');
-        else updateAutoSaveStatus('');
+        if(!silentAttempt&&!wasRenew)alert('No se pudo conectar con Google Drive.');
+        else if(!wasRenew)updateAutoSaveStatus('');
         silentAttempt=false;
+        if(wasRenew)finishDriveRenew(false);
         return;
       }
       silentAttempt=false;
       driveAccessToken=resp.access_token;
+      driveTokenExpiresAt=Date.now()+((Number(resp.expires_in)||3600)*1000);
       gapi.client.setToken({access_token:driveAccessToken});
       localStorage.setItem('driveEverConnected','1');
       $('driveStatus').textContent='Conectado a Google Drive';
       $('driveConnectBtn').textContent='Reconectar Drive';
+      if(wasRenew){finishDriveRenew(true);scheduleDriveSync();return} // renovación: no se recargan datos desde Drive
       await driveLoadData();
     }
   });
 }
+// Renueva el permiso de acceso en segundo plano (sin ventanas) antes de que venza (~1 hora).
+function renewDriveToken(){
+  if(!driveTokenClient||!gapiReady)return Promise.resolve(false);
+  if(driveRenewPromise)return driveRenewPromise;
+  driveRenewPromise=new Promise(res=>{driveRenewResolve=res});
+  driveRenewTimeout=setTimeout(()=>finishDriveRenew(false),20000);
+  driveSilentRenewal=true;
+  try{driveTokenClient.requestAccessToken({prompt:'none'})}catch(e){finishDriveRenew(false)}
+  return driveRenewPromise;
+}
+function finishDriveRenew(ok){
+  clearTimeout(driveRenewTimeout);
+  const r=driveRenewResolve;driveRenewPromise=null;driveRenewResolve=null;
+  if(!ok)driveSessionLost();
+  if(r)r(ok);
+}
+function driveSessionLost(){
+  driveAccessToken=null;
+  $('driveStatus').textContent='Sesión de Drive vencida: presiona "Reconectar Drive"';
+  $('driveConnectBtn').textContent='Reconectar Drive';
+  updateAutoSaveStatus('Guardado localmente — Drive desconectado');
+}
+async function driveEnsureToken(){
+  if(!driveAccessToken)return false;
+  if(Date.now()>driveTokenExpiresAt-60000)return await renewDriveToken();
+  return true;
+}
+function driveMaybeRenew(){
+  const near=Date.now()>driveTokenExpiresAt-5*60000;
+  if(driveAccessToken&&near)renewDriveToken();
+  else if(!driveAccessToken&&localStorage.getItem('driveEverConnected')==='1'&&gapiReady&&!driveRenewPromise&&Date.now()-driveLastRetryAt>60000){
+    driveLastRetryAt=Date.now();renewDriveToken(); // intento silencioso de recuperar una sesión vencida al volver a la pestaña
+  }
+}
+setInterval(()=>{if(driveAccessToken&&Date.now()>driveTokenExpiresAt-5*60000)renewDriveToken()},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)driveMaybeRenew()});
 function driveConnect(){
   if(!driveTokenClient||!gapiReady){alert('Google Drive aún está cargando, intenta de nuevo en unos segundos.');return}
   driveTokenClient.requestAccessToken({prompt:driveAccessToken?'':'consent'});
@@ -892,8 +933,9 @@ async function driveLoadData(){
     $('driveStatus').textContent='Datos cargados desde Google Drive';
   }catch(err){console.error(err);alert('Error al cargar datos desde Google Drive.');}
 }
-async function driveSaveData(){
-  if(!driveAccessToken)return;
+async function driveSaveData(retried){
+  if(!driveAccessToken)return false;
+  if(!(await driveEnsureToken()))return false; // renueva el permiso en segundo plano si está por vencer
   try{
     const content=JSON.stringify(state);
     const metadata={name:DRIVE_FILENAME,mimeType:'application/json'};
@@ -906,7 +948,19 @@ async function driveSaveData(){
     const res=await gapi.client.request({path,method,params:{uploadType:'multipart'},headers:{'Content-Type':'multipart/related; boundary="'+boundary+'"'},body});
     if(!driveFileId)driveFileId=res.result.id;
     $('driveStatus').textContent='Guardado en Google Drive ✓';
-  }catch(err){console.error(err);alert('Error al guardar en Google Drive.');}
+    return true;
+  }catch(err){
+    const code=err&&(err.status||(err.result&&err.result.error&&err.result.error.code));
+    if(code===401&&!retried){ // permiso vencido: renovar y reintentar una vez
+      if(await renewDriveToken())return await driveSaveData(true);
+      return false;
+    }
+    console.error(err);
+    if(code===401){driveSessionLost();return false}
+    $('driveStatus').textContent='Error al guardar en Google Drive';
+    alert('Error al guardar en Google Drive.');
+    return false;
+  }
 }
 function downloadExcel(filename,sheetName,rows){
   if(!window.XLSX){alert('La librería de Excel aún está cargando, intenta de nuevo en unos segundos.');return}
