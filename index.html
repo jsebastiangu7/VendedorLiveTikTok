@@ -144,6 +144,17 @@ td .ss-wrap,.field .ss-wrap{width:100%}
   </div>
 </section>
 
+<section id="ventasProducto" class="view">
+  <h1>Ventas por producto</h1><div class="subtitle">Elige un producto y asigna sus unidades disponibles a los clientes activos.</div>
+  <div class="panel">
+    <div class="formgrid" style="grid-template-columns:minmax(240px,520px)">
+      <div class="field"><label>Producto</label><select id="vpProduct" onchange="vpProductChosen()"></select></div>
+    </div>
+    <div class="note" style="margin-top:8px">Al aceptar, cada cliente recibe las unidades que indiques (1 por defecto): se suman a su pedido abierto (Pendiente o Apartado) o, si no tiene, se crea un pedido nuevo. Solo aparecen productos con unidades disponibles.</div>
+    <div id="vpResult" style="margin-top:16px"></div>
+  </div>
+</section>
+
 <section id="pedidos" class="view">
   <h1>Pedidos</h1><div class="subtitle">Busca, edita pedidos y registra nuevos abonos.</div>
   <div class="toolbar"><input id="orderSearch" placeholder="Buscar pedido o cliente" oninput="renderOrders()"><select id="orderFilter" onchange="renderOrders()"><option value="">Todos</option><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select><button class="btn" onclick="exportOrdersExcel()">⬇ Descargar Excel</button></div>
@@ -250,7 +261,7 @@ function refresh(){
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
 }
 function navInit(){
-  const items=[['dashboard','Dashboard'],['venta','Venta LIVE'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación'],['legal','Legal']];
+  const items=[['dashboard','Dashboard'],['venta','Venta LIVE'],['ventasProducto','Ventas por producto'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación'],['legal','Legal']];
   $('nav').innerHTML=items.map(([id,t],i)=>`<button class="${i===0?'active':''}" data-view="${id}">${t}</button>`).join('');
   document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
   $('navMobile').innerHTML=items.map(([id,t])=>`<option value="${id}">${t}</option>`).join('');
@@ -274,6 +285,7 @@ function fillSelects(){
   po.innerHTML='<option value="">Seleccionar pedido…</option>'+ordersSorted.map(o=>`<option value="${esc(o.id)}">${esc(o.id)} — ${esc(o.cliente)} — ${money(orderTotal(o))}</option>`).join('');
   if(state.orders.some(x=>x.id===pc)) po.value=pc;
   enhanceSearchable(po);
+  fillVpProducts();
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function orderTotal(o){return (o.lineas||[]).reduce((a,l)=>a+(Number(l.precio)||0)*(Number(l.cantidad)||0),0)}
@@ -1884,6 +1896,107 @@ function renderLegal(){
   $('legalBtnPrivacy').className='btn'+(legalDoc==='privacy'?' primary':'');
   $('legalBtnTerms').className='btn'+(legalDoc==='terms'?' primary':'');
 }
+/* ===== Ventas por producto ===== */
+let vpState=null;
+function fillVpProducts(){
+  const sel=$('vpProduct');if(!sel)return;
+  const current=sel.value;
+  const arr=[...state.inventory].map(p=>({p,disp:Math.max(0,stockInfo(p).current)})).filter(x=>x.disp>0).sort((a,b)=>a.p.producto.localeCompare(b.p.producto,'es'));
+  sel.innerHTML='<option value="">Seleccionar producto…</option>'+arr.map(x=>`<option value="${esc(x.p.producto)}">${esc(x.p.producto)} — ${money(x.p.precio)} — Disp.: ${x.disp}</option>`).join('');
+  if(arr.some(x=>x.p.producto===current))sel.value=current;
+  enhanceSearchable(sel);
+}
+function vpOpenOrderOf(clientName){
+  return state.orders.filter(o=>o.cliente===clientName&&(o.estado==='Pendiente'||o.estado==='Apartado'))
+    .sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))||String(b.id).localeCompare(String(a.id)))[0]||null;
+}
+function vpAssigned(){let t=0;vpState.selected.forEach(q=>t+=q);return t}
+function vpProductChosen(){
+  const name=$('vpProduct').value;if(!name)return;
+  const p=state.inventory.find(x=>x.producto===name);if(!p)return;
+  const total=Math.max(0,stockInfo(p).current);
+  vpState={product:name,total,selected:new Map()};
+  $('vpTitle').textContent='Seleccionar clientes — '+p.producto;
+  $('vpInfo').textContent=`Precio: ${money(p.precio)} · Marca al cliente (recibe 1 unidad) o escribe en el cuadro cuántas unidades va a comprar.`;
+  $('vpSearch').value='';
+  vpRenderClients();
+  $('vpModal').classList.add('open');
+}
+function vpRenderClients(){
+  if(!vpState)return;
+  const remaining=vpState.total-vpAssigned();
+  const q=($('vpSearch').value||'').toLowerCase();
+  const clients=state.clients.filter(c=>c.estado!=='Inactivo').sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const list=clients.filter(c=>!q||c.nombre.toLowerCase().includes(q));
+  $('vpClients').innerHTML=list.length?list.map(c=>{
+    const qty=vpState.selected.get(c.nombre)||0;
+    const checked=qty>0;
+    const blocked=!checked&&remaining<=0;
+    const open=vpOpenOrderOf(c.nombre);
+    const hint=open?`Se suma al pedido ${esc(open.id)}`:'Se crea pedido nuevo';
+    const nm=js(c.nombre);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--row-border);opacity:${blocked?.45:1}"><input type="checkbox" ${checked?'checked':''} ${blocked?'disabled':''} onchange="vpToggle('${nm}',this.checked)" style="cursor:${blocked?'not-allowed':'pointer'}"><span style="flex:1;min-width:0"><strong>${esc(c.nombre)}</strong>${c.tiktok?` <span class="note">· ${esc(c.tiktok)}</span>`:''}<br><span class="note">${hint}</span></span><input type="number" min="0" max="${qty+remaining}" step="1" value="${checked?qty:''}" placeholder="0" ${blocked?'disabled':''} title="Unidades para este cliente" onchange="vpSetQty('${nm}',this.value)" style="width:74px;border:1px solid var(--field-border);border-radius:8px;padding:7px;font:inherit;background:var(--field-bg);color:var(--ink);text-align:center"></div>`;
+  }).join(''):'<div class="empty">No hay clientes activos'+(q?' que coincidan':'')+'.</div>';
+  const cnt=$('vpCounter');
+  cnt.textContent=remaining>0?`Unidades por asignar: ${remaining} de ${vpState.total}`:`Sin unidades por asignar (0 de ${vpState.total})`;
+  cnt.style.color=remaining<=0?'var(--danger)':'var(--primary)';
+  $('vpAccept').disabled=vpState.selected.size===0;
+}
+function vpSetQtyValue(name,qty){
+  if(!vpState)return;
+  const current=vpState.selected.get(name)||0;
+  const maxAllowed=current+(vpState.total-vpAssigned());
+  qty=Math.floor(Number(qty)||0);
+  if(qty>maxAllowed)qty=maxAllowed; // nunca más de las unidades disponibles
+  if(qty<=0)vpState.selected.delete(name);else vpState.selected.set(name,qty);
+}
+function vpToggle(name,on){vpSetQtyValue(name,on?1:0);vpRenderClients()}
+function vpSetQty(name,value){vpSetQtyValue(name,value);vpRenderClients()}
+function vpAddClient(){
+  if(!vpState)return;
+  const nombre=prompt('Nombre del cliente:');if(!nombre||!nombre.trim())return;
+  const n=nombre.trim();
+  if(state.clients.some(c=>c.nombre.toLowerCase()===n.toLowerCase())){alert('Ese cliente ya existe.');return}
+  const telefono=prompt('WhatsApp / teléfono:')||'',tiktok=prompt('Ciudad:')||'';
+  state.clients.push({nombre:n,telefono,tiktok,direccion:'',notas:'',estado:'Activo'});
+  persist();
+  vpSetQtyValue(n,1);
+  $('vpSearch').value='';
+  refresh();vpRenderClients();
+}
+function vpClose(){
+  $('vpModal').classList.remove('open');
+  vpState=null;
+  const sel=$('vpProduct');if(sel){sel.value='';if(sel._ssRefresh)sel._ssRefresh()}
+}
+function vpCancel(){vpClose()}
+function vpAccept(){
+  if(!vpState||!vpState.selected.size){alert('Selecciona al menos un cliente.');return}
+  const p=state.inventory.find(x=>x.producto===vpState.product);if(!p){vpClose();return}
+  const available=Math.max(0,stockInfo(p).current);
+  const entries=[...vpState.selected.entries()].sort((a,b)=>a[0].localeCompare(b[0],'es'));
+  const totalQty=entries.reduce((t,e)=>t+e[1],0);
+  if(totalQty>available){alert(`Solo hay ${available} unidades disponibles de "${p.producto}".`);return}
+  const rows=[];
+  entries.forEach(([cliente,qty])=>{
+    const open=vpOpenOrderOf(cliente);
+    if(open){
+      open.lineas=open.lineas||[];
+      const line=open.lineas.find(l=>l.producto===p.producto);
+      if(line)line.cantidad=(Number(line.cantidad)||0)+qty;
+      else open.lineas.push({producto:p.producto,cantidad:qty,precio:Number(p.precio)||0});
+      rows.push({cliente,qty,pedido:open.id,accion:'Agregado a pedido existente'});
+    }else{
+      const id=nextOrderId();
+      state.orders.push({id,cliente,fecha:today(),estado:'Pendiente',notas:'',lineas:[{producto:p.producto,cantidad:qty,precio:Number(p.precio)||0}]});
+      rows.push({cliente,qty,pedido:id,accion:'Pedido nuevo'});
+    }
+  });
+  persist();
+  const quedan=Math.max(0,stockInfo(p).current);
+  vpClose();refresh();
+  $('vpResult').innerHTML=`<h3 style="margin:0 0 8px">Última asignación — ${esc(p.producto)}</h3><div class="note" style="margin-bottom:8px">Unidades asignadas: ${totalQty} · Unidades que quedan disponibles: ${quedan}</div><div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Unidades</th><th>Pedido</th><th>Acción</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.cliente)}</td><td>${r.qty}</td><td>${esc(r.pedido)}</td><td>${esc(r.accion)}</td></tr>`).join('')}</tbody></table></div>`;
+}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal();
 </script>
 
@@ -2005,6 +2118,16 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
       <div class="field" style="margin-top:10px"><label>Vincular a producto existente</label><select id="scanLinkProduct"></select></div>
       <div class="modal-actions"><button class="btn" onclick="closeScanResult()">Cancelar</button><button class="btn" onclick="scanCreateNewFromCode()">Crear producto nuevo</button><button class="btn primary" id="scanLinkBtn" onclick="scanLinkExisting()">Vincular código</button></div>
     </div>
+  </div>
+</div>
+<div id="vpModal" class="modal-backdrop" onclick="if(event.target===this)vpCancel()">
+  <div class="modal" style="width:min(560px,calc(100% - 30px))">
+    <h2 id="vpTitle">Seleccionar clientes</h2>
+    <div class="note" id="vpInfo"></div>
+    <div id="vpCounter" style="font-size:22px;font-weight:800;margin:10px 0 4px"></div>
+    <div class="quick" style="margin-top:8px"><input id="vpSearch" placeholder="Buscar cliente" oninput="vpRenderClients()" style="flex:1;min-width:140px;border:1px solid var(--field-border);border-radius:8px;padding:9px;font:inherit;background:var(--field-bg);color:var(--ink)"><button class="btn" onclick="vpAddClient()">+ Cliente nuevo</button></div>
+    <div id="vpClients" style="max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:10px;margin-top:10px"></div>
+    <div class="modal-actions"><button class="btn" onclick="vpCancel()">Cancelar</button><button class="btn primary" id="vpAccept" onclick="vpAccept()">Aceptar</button></div>
   </div>
 </div>
 </body>
