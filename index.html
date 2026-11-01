@@ -1361,7 +1361,7 @@ function buildImportPreview(grid,fileName){
     const fecha=impDate(get(row,'fecha'));
     const r={line:hi+2+n,manualState:null,precioManual:false,warnFecha:fecha===null,
       in:{nombre:txt(get(row,'producto')),codigo:impCode(get(row,'codigo')),categoria:txt(get(row,'categoria')),costo:numTxt(get(row,'costo')),envio:numTxt(get(row,'envio')),cantidad:numTxt(get(row,'cantidad')),precio:numTxt(get(row,'precio')),fecha:fecha||''}};
-    r.filePrecioRaw=r.in.precio;
+    r.filePrecioRaw=r.in.precio;r.fileNombre=r.in.nombre;r.fileCodigo=r.in.codigo;
     importRows.push(r);
   });
   if(!importRows.length){alert('No encontré filas con datos debajo de los encabezados.');return}
@@ -1390,7 +1390,12 @@ function importEval(r){
     if(byCode&&byName&&byCode!==byName)errs.push(`El código ya pertenece a "${byCode.producto}"`);
     const m=byCode||byName;r.prod=m?m.producto:null;
   }
-  if(r.codigo&&r.prod){const pp=state.inventory.find(x=>x.producto===r.prod);if(pp&&pp.codigo&&normCode(pp.codigo)!==normCode(r.codigo))warns.push(`Ya tiene otro código (${pp.codigo}); no se cambia`)}
+  // en productos existentes predominan el nombre y el código del sistema (si el producto aún no tiene código, se conserva el del archivo)
+  if(r.prod){
+    const sp=state.inventory.find(x=>x.producto===r.prod);
+    if(sp){I.nombre=sp.producto;r.nombre=sp.producto;if(sp.codigo){I.codigo=sp.codigo;r.codigo=sp.codigo}}
+    r.sysIdent=true;
+  }else if(r.sysIdent){I.nombre=r.fileNombre;I.codigo=r.fileCodigo;r.nombre=String(I.nombre||'').trim();r.codigo=String(I.codigo||'').trim();r.sysIdent=false} // dejó de ser existente: vuelven los del archivo
   // el precio de venta del sistema predomina en productos existentes (salvo que lo edites)
   if(!(r.prod&&!r.precioManual)&&(precio.bad||precio.n<0))errs.push('Precio venta inválido');
   if(r.prod&&!r.precioManual){const sp=state.inventory.find(x=>x.producto===r.prod);r.precio=sp?(Number(sp.precio)||0):null;I.precio=r.precio==null?'':String(r.precio);r.sysShown=true}
@@ -1422,6 +1427,7 @@ function importStateChanged(i,val){
 function importFieldChanged(i,key,val){
   const r=importRows[i];if(!r)return;
   r.in[key]=val;
+  if(!r.prod){if(key==='nombre')r.fileNombre=val;if(key==='codigo')r.fileCodigo=val}
   if(key==='precio'&&r.prod)r.precioManual=true; // precio editado a mano en un producto existente: se aplica
   importRefreshAll(false);
 }
@@ -1472,19 +1478,21 @@ function importRefreshAll(rebuild){
     tr.cells[1].innerHTML=importStateCell(r,i);tr.cells[10].innerHTML=importNotesCell(r);
     tr.style.opacity=r.errs.length?'.75':'';
     const pi=tr.cells[8].querySelector('input');if(pi&&document.activeElement!==pi)pi.value=r.in.precio||'';
+    const sp=r.prod?state.inventory.find(x=>x.producto===r.prod):null;
+    [[2,'nombre',!!r.prod],[3,'codigo',!!(sp&&sp.codigo)]].forEach(([c,k,ro])=>{const el=tr.cells[c].querySelector('input');if(!el)return;if(document.activeElement!==el)el.value=r.in[k]||'';el.readOnly=ro;el.style.background=ro?'var(--thead-bg)':'var(--field-bg)'});
   });
   importSummary();
 }
-function importInput(i,key,val,type,w){
+function importInput(i,key,val,type,w,ro){
   const t=type==='date'?'date':'text';
-  return `<input type="${t}" value="${esc(val||'')}" ${type==='num'?'inputmode="decimal"':''} onchange="importFieldChanged(${i},'${key}',this.value)" style="width:${w}px;padding:5px;border:1px solid var(--field-border);border-radius:6px;background:var(--field-bg);color:var(--ink);font:inherit">`;
+  return `<input type="${t}" value="${esc(val||'')}" ${type==='num'?'inputmode="decimal"':''} ${ro?'readonly title="Producto existente: se conservan los datos del sistema"':''} onchange="importFieldChanged(${i},'${key}',this.value)" style="width:${w}px;padding:5px;border:1px solid var(--field-border);border-radius:6px;background:${ro?'var(--thead-bg)':'var(--field-bg)'};color:var(--ink);font:inherit">`;
 }
 function renderImportPreview(fileName){
   if(fileName)importFileName=fileName;
   importRows.forEach(importEval);importRows.forEach(importRevalidate);
   $('importBody').innerHTML=importRows.map((r,i)=>{
     const I=r.in;
-    return `<tr${r.errs.length?' style="opacity:.75"':''}><td>${r.line}</td><td>${importStateCell(r,i)}</td><td>${importInput(i,'nombre',I.nombre,'text',170)}</td><td>${importInput(i,'codigo',I.codigo,'text',120)}</td><td>${importInput(i,'categoria',I.categoria,'text',110)}</td><td>${importInput(i,'costo',I.costo,'num',85)}</td><td>${importInput(i,'envio',I.envio,'num',75)}</td><td>${importInput(i,'cantidad',I.cantidad,'num',65)}</td><td>${importInput(i,'precio',I.precio,'num',85)}</td><td>${importInput(i,'fecha',I.fecha,'date',140)}</td><td>${importNotesCell(r)}</td></tr>`;
+    return `<tr${r.errs.length?' style="opacity:.75"':''}><td>${r.line}</td><td>${importStateCell(r,i)}</td><td>${importInput(i,'nombre',I.nombre,'text',170,!!r.prod)}</td><td>${importInput(i,'codigo',I.codigo,'text',120,!!r.prod&&!!(state.inventory.find(x=>x.producto===r.prod)||{}).codigo)}</td><td>${importInput(i,'categoria',I.categoria,'text',110)}</td><td>${importInput(i,'costo',I.costo,'num',85)}</td><td>${importInput(i,'envio',I.envio,'num',75)}</td><td>${importInput(i,'cantidad',I.cantidad,'num',65)}</td><td>${importInput(i,'precio',I.precio,'num',85)}</td><td>${importInput(i,'fecha',I.fecha,'date',140)}</td><td>${importNotesCell(r)}</td></tr>`;
   }).join('');
   importSummary();
   $('importModal').classList.add('open');
