@@ -1353,36 +1353,52 @@ function buildImportPreview(grid,fileName){
   const faltan=['producto','cantidad'].filter(k=>!(k in idx));
   if(faltan.length){alert('Faltan columnas obligatorias: '+faltan.map(k=>k==='producto'?'Producto':'Cantidad').join(', ')+'.');return}
   const get=(row,k)=>k in idx?row[idx[k]]:null;
-  const seenCodes=new Map();
+  const txt=v=>v==null?'':String(v).trim();
+  const numTxt=v=>{if(v==null||v==='')return '';const n=impNum(v);return n.bad?String(v):String(n.n)};
   importRows=[];
   grid.slice(hi+1).forEach((row,n)=>{
-    const nombre=String(get(row,'producto')==null?'':get(row,'producto')).trim();
-    if(!nombre&&row.every(c=>c==null||c===''))return;
-    const errs=[],warns=[];
-    const cant=impNum(get(row,'cantidad')),costo=impNum(get(row,'costo')),envio=impNum(get(row,'envio')),precio=impNum(get(row,'precio'));
-    if(!nombre)errs.push('Falta el producto');
-    if(cant.empty||cant.bad||cant.n<=0||!Number.isInteger(cant.n))errs.push('Cantidad inválida');
-    [['Costo',costo],['Envío',envio],['Precio venta',precio]].forEach(([l,v])=>{if(v.bad||v.n<0)errs.push(l+' inválido')});
-    let fecha=impDate(get(row,'fecha'));
-    if(fecha===null){warns.push('Fecha no reconocida: se usa hoy');fecha=''}
-    const codigo=impCode(get(row,'codigo'));
-    const categoria=String(get(row,'categoria')==null?'':get(row,'categoria')).trim();
-    // coincidencia: primero por código, luego por nombre
-    let prod=codigo?findProductByCode(codigo):null;
-    const byName=nombre?state.inventory.find(p=>p.producto.trim().toLowerCase()===nombre.toLowerCase()):null;
-    if(prod&&byName&&prod!==byName){errs.push(`El código ya pertenece a "${prod.producto}"`);}
-    if(!prod)prod=byName||null;
-    if(codigo){
-      const nc=normCode(codigo);
-      if(seenCodes.has(nc)&&seenCodes.get(nc)!==nombre.toLowerCase())errs.push('Código repetido en otro producto del archivo');
-      else seenCodes.set(nc,nombre.toLowerCase());
-      if(prod&&prod.codigo&&normCode(prod.codigo)!==normCode(codigo))warns.push(`Ya tiene otro código (${prod.codigo}); no se cambia`);
-    }
-    importRows.push({precioFile:precio.empty?null:precio.n,precioManual:false,fmtErrs:[...errs],line:hi+2+n,nombre,codigo,categoria,costo:costo.empty?null:costo.n,envio:envio.empty?null:envio.n,cantidad:cant.n,precio:precio.empty?null:precio.n,fecha,prod:prod?prod.producto:null,errs,warns});
+    if(row.every(c=>c==null||c==='')&&!txt(get(row,'producto')))return;
+    const fecha=impDate(get(row,'fecha'));
+    const r={line:hi+2+n,manualState:null,precioManual:false,warnFecha:fecha===null,
+      in:{nombre:txt(get(row,'producto')),codigo:impCode(get(row,'codigo')),categoria:txt(get(row,'categoria')),costo:numTxt(get(row,'costo')),envio:numTxt(get(row,'envio')),cantidad:numTxt(get(row,'cantidad')),precio:numTxt(get(row,'precio')),fecha:fecha||''}};
+    r.filePrecioRaw=r.in.precio;
+    importRows.push(r);
   });
   if(!importRows.length){alert('No encontré filas con datos debajo de los encabezados.');return}
-  importFileName=fileName;importRows.forEach(r=>{r.auto=r.prod?'existente':'nuevo'});
+  importFileName=fileName;
   renderImportPreview(fileName);
+}
+// Interpreta los valores (editables) de una fila: números, errores de formato y coincidencia con el inventario
+function importEval(r){
+  const I=r.in,errs=[],warns=[];
+  const cant=impNum(I.cantidad),costo=impNum(I.costo),envio=impNum(I.envio),precio=impNum(I.precio);
+  r.nombre=String(I.nombre||'').trim();r.codigo=String(I.codigo||'').trim();r.categoria=String(I.categoria||'').trim();
+  r.cantidad=cant.n;r.costo=costo.empty?null:costo.n;r.envio=envio.empty?null:envio.n;
+  r.precioFile=impNum(r.filePrecioRaw).empty||impNum(r.filePrecioRaw).bad?null:impNum(r.filePrecioRaw).n;
+  r.fecha=I.fecha||'';
+  if(!r.nombre)errs.push('Falta el producto');
+  if(cant.empty||cant.bad||cant.n<=0||!Number.isInteger(cant.n))errs.push('Cantidad inválida');
+  [['Costo',costo],['Envío',envio]].forEach(([l,v])=>{if(v.bad||v.n<0)errs.push(l+' inválido')});
+  if(r.warnFecha&&!r.fecha)warns.push('Fecha no reconocida: se usa hoy');
+  // coincidencia automática (código primero, luego nombre) salvo que el usuario haya fijado el estado
+  const byCode=r.codigo?findProductByCode(r.codigo):null;
+  const byName=r.nombre?state.inventory.find(p=>p.producto.trim().toLowerCase()===r.nombre.toLowerCase()):null;
+  if(r.manualState==='nuevo')r.prod=null;
+  else if(r.manualState==='existente'&&r.prod&&state.inventory.some(p=>p.producto===r.prod)){/* se mantiene la asignación */}
+  else{
+    r.manualState=null;
+    if(byCode&&byName&&byCode!==byName)errs.push(`El código ya pertenece a "${byCode.producto}"`);
+    const m=byCode||byName;r.prod=m?m.producto:null;
+  }
+  if(r.codigo&&r.prod){const pp=state.inventory.find(x=>x.producto===r.prod);if(pp&&pp.codigo&&normCode(pp.codigo)!==normCode(r.codigo))warns.push(`Ya tiene otro código (${pp.codigo}); no se cambia`)}
+  // el precio de venta del sistema predomina en productos existentes (salvo que lo edites)
+  if(!(r.prod&&!r.precioManual)&&(precio.bad||precio.n<0))errs.push('Precio venta inválido');
+  if(r.prod&&!r.precioManual){const sp=state.inventory.find(x=>x.producto===r.prod);r.precio=sp?(Number(sp.precio)||0):null;I.precio=r.precio==null?'':String(r.precio);r.sysShown=true}
+  else{
+    if(!r.prod&&r.sysShown&&!r.precioManual){I.precio=r.filePrecioRaw;r.sysShown=false} // dejó de ser existente: vuelve el precio del archivo
+    const pr2=impNum(I.precio);r.precio=pr2.empty||pr2.bad?null:pr2.n;
+  }
+  r.fmtErrs=errs;r.warns=warns;
 }
 function importRevalidate(r){
   r.errs=[...(r.fmtErrs||[])];
@@ -1391,11 +1407,23 @@ function importRevalidate(r){
     const dup=r.codigo?findProductByCode(r.codigo):null;
     if(dup)r.errs.push(`El código ya pertenece a "${dup.producto}": cámbialo a "Existente"`);
   }
+  if(r.codigo){ // mismo código en dos productos distintos del archivo
+    const nc=normCode(r.codigo);
+    if(importRows.some(o=>o!==r&&o.codigo&&normCode(o.codigo)===nc&&(o.prod||o.nombre.toLowerCase())!==(r.prod||r.nombre.toLowerCase())))r.errs.push('Código repetido en otro producto del archivo');
+  }
 }
 function importStateChanged(i,val){
   const r=importRows[i];if(!r)return;
   if(val==='existente'){openImportAssign(i);return}
-  r.prod=null;r.precioManual=false;renderImportPreview();
+  r.manualState='nuevo';r.prod=null;
+  if(!r.precioManual)r.in.precio=r.filePrecioRaw;
+  r.precioManual=false;importRefreshAll(true);
+}
+function importFieldChanged(i,key,val){
+  const r=importRows[i];if(!r)return;
+  r.in[key]=val;
+  if(key==='precio'&&r.prod)r.precioManual=true; // precio editado a mano en un producto existente: se aplica
+  importRefreshAll(false);
 }
 function openImportAssign(i){
   const r=importRows[i];if(!r)return;importAssignIdx=i;
@@ -1421,28 +1449,44 @@ function confirmImportAssign(){
   const name=$('impAssignProduct').value;if(!state.inventory.some(p=>p.producto===name)){alert('Selecciona un producto.');return}
   const c=Number($('impAssignCost').value),pr=Number($('impAssignPrice').value);
   if(!(c>=0)||!(pr>=0)){alert('Costo y precio deben ser números mayores o iguales a 0.');return}
-  r.prod=name;r.costo=c;r.precio=pr;r.precioManual=true;
+  r.prod=name;r.manualState='existente';r.costo=c;r.precio=pr;r.precioManual=true;r.in.costo=String(c);r.in.precio=String(pr);
   $('importAssignModal').classList.remove('open');importAssignIdx=-1;renderImportPreview();
 }
 function cancelImportAssign(){$('importAssignModal').classList.remove('open');importAssignIdx=-1;renderImportPreview()}
-function renderImportPreview(fileName){
-  if(fileName)importFileName=fileName;fileName=importFileName;
-  importRows.forEach(r=>{ // el precio de venta del sistema predomina sobre el del archivo en productos existentes
-    if(r.prod&&!r.precioManual){const sp=state.inventory.find(x=>x.producto===r.prod);r.precio=sp?(Number(sp.precio)||0):r.precio}
-    else if(!r.prod){r.precio=r.precioFile;r.precioManual=false}
-  });
-  importRows.forEach(importRevalidate);
+function importStateCell(r,i){
+  return `<select onchange="importStateChanged(${i},this.value)" style="padding:4px;border-radius:6px;border:1px solid var(--field-border);background:var(--field-bg);color:var(--ink)"><option value="nuevo" ${r.prod?'':'selected'}>Nuevo</option><option value="existente" ${r.prod?'selected':''}>Existente</option></select>`+(r.prod?`<div class="note" style="margin-top:3px">→ ${esc(r.prod)} <a href="#" onclick="openImportAssign(${i});return false">cambiar</a></div>`:'')+(r.errs.length?`<div style="color:#c0392b;font-weight:700;font-size:12px">Con error</div>`:'');
+}
+function importNotesCell(r){return [...r.errs.map(e=>`<span style="color:#c0392b">${esc(e)}</span>`),...r.warns.map(e=>`<span style="color:#b9770e">${esc(e)}</span>`)].join('<br>')}
+function importSummary(){
   const ok=importRows.filter(r=>!r.errs.length);
   const nuevos=ok.filter(r=>!r.prod).length,exist=ok.length-nuevos,bad=importRows.length-ok.length;
-  $('importSummary').innerHTML=`<strong>${esc(fileName)}</strong> — ${importRows.length} filas: <strong>${nuevos}</strong> producto(s) nuevo(s), <strong>${exist}</strong> existente(s) (se suma la cantidad al stock)${bad?`, <strong style="color:#c0392b">${bad} con errores (se omiten)</strong>`:''}.`;
-  const m=v=>v==null?'—':money(v);
-  $('importBody').innerHTML=importRows.map(r=>{
-    const i=importRows.indexOf(r);
-    const est=`<select onchange="importStateChanged(${i},this.value)" style="padding:4px;border-radius:6px;border:1px solid var(--field-border);background:var(--field-bg);color:var(--ink)"><option value="nuevo" ${r.prod?'':'selected'}>Nuevo</option><option value="existente" ${r.prod?'selected':''}>Existente</option></select>`+(r.prod?`<div class="note" style="margin-top:3px">→ ${esc(r.prod)} <a href="#" onclick="openImportAssign(${i});return false">cambiar</a></div>`:'')+(r.errs.length?`<div style="color:#c0392b;font-weight:700;font-size:12px">Con error</div>`:(r.manual?'':''));
-    const notes=[...r.errs.map(e=>`<span style="color:#c0392b">${esc(e)}</span>`),...r.warns.map(e=>`<span style="color:#b9770e">${esc(e)}</span>`)].join('<br>');
-    return `<tr${r.errs.length?' style="opacity:.75"':''}><td>${r.line}</td><td>${est}</td><td>${esc(r.nombre)}</td><td>${esc(r.codigo||'—')}</td><td>${esc(r.categoria||'—')}</td><td>${m(r.costo)}</td><td>${m(r.envio)}</td><td>${r.cantidad}</td><td>${m(r.precio)}</td><td>${esc(r.fecha||'hoy')}</td><td>${notes}</td></tr>`;
-  }).join('');
+  $('importSummary').innerHTML=`<strong>${esc(importFileName)}</strong> — ${importRows.length} filas: <strong>${nuevos}</strong> producto(s) nuevo(s), <strong>${exist}</strong> existente(s) (se suma la cantidad al stock)${bad?`, <strong style="color:#c0392b">${bad} con errores (se omiten)</strong>`:''}.`;
   $('importConfirmBtn').disabled=!ok.length;
+}
+// Actualiza estado, avisos y precios de todas las filas sin reconstruir la tabla (para no perder el foco al editar)
+function importRefreshAll(rebuild){
+  importRows.forEach(importEval);importRows.forEach(importRevalidate);
+  if(rebuild||!$('importBody').rows.length){renderImportPreview();return}
+  importRows.forEach((r,i)=>{
+    const tr=$('importBody').rows[i];if(!tr)return;
+    tr.cells[1].innerHTML=importStateCell(r,i);tr.cells[10].innerHTML=importNotesCell(r);
+    tr.style.opacity=r.errs.length?'.75':'';
+    const pi=tr.cells[8].querySelector('input');if(pi&&document.activeElement!==pi)pi.value=r.in.precio||'';
+  });
+  importSummary();
+}
+function importInput(i,key,val,type,w){
+  const t=type==='date'?'date':'text';
+  return `<input type="${t}" value="${esc(val||'')}" ${type==='num'?'inputmode="decimal"':''} onchange="importFieldChanged(${i},'${key}',this.value)" style="width:${w}px;padding:5px;border:1px solid var(--field-border);border-radius:6px;background:var(--field-bg);color:var(--ink);font:inherit">`;
+}
+function renderImportPreview(fileName){
+  if(fileName)importFileName=fileName;
+  importRows.forEach(importEval);importRows.forEach(importRevalidate);
+  $('importBody').innerHTML=importRows.map((r,i)=>{
+    const I=r.in;
+    return `<tr${r.errs.length?' style="opacity:.75"':''}><td>${r.line}</td><td>${importStateCell(r,i)}</td><td>${importInput(i,'nombre',I.nombre,'text',170)}</td><td>${importInput(i,'codigo',I.codigo,'text',120)}</td><td>${importInput(i,'categoria',I.categoria,'text',110)}</td><td>${importInput(i,'costo',I.costo,'num',85)}</td><td>${importInput(i,'envio',I.envio,'num',75)}</td><td>${importInput(i,'cantidad',I.cantidad,'num',65)}</td><td>${importInput(i,'precio',I.precio,'num',85)}</td><td>${importInput(i,'fecha',I.fecha,'date',140)}</td><td>${importNotesCell(r)}</td></tr>`;
+  }).join('');
+  importSummary();
   $('importModal').classList.add('open');
 }
 function closeImportModal(){$('importModal').classList.remove('open');importRows=[]}
@@ -2244,7 +2288,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
 <div id="importModal" class="modal-backdrop" onclick="if(event.target===this)closeImportModal()">
   <div class="modal" style="width:min(1000px,calc(100% - 30px))">
     <h2>Revisar archivo de inventario</h2>
-    <div class="note">Nada se aplica hasta que confirmes. La <strong>Cantidad</strong> se suma al stock actual. Los productos se identifican por código de barras o, si no hay, por nombre exacto; si ya existen se actualizan costo, envío, categoría y fecha de compra con los valores del archivo; el precio de venta del sistema no se modifica (solo si lo editas en el modal de asignación).</div>
+    <div class="note">Todos los campos son editables. Nada se aplica hasta que confirmes. La <strong>Cantidad</strong> se suma al stock actual. Los productos se identifican por código de barras o, si no hay, por nombre exacto; si ya existen se actualizan costo, envío, categoría y fecha de compra con los valores del archivo; el precio de venta del sistema no se modifica (solo si lo editas en el modal de asignación).</div>
     <div id="importSummary" style="margin:10px 0"></div>
     <div class="tablewrap" style="max-height:340px"><table><thead><tr><th>Fila</th><th style="min-width:150px">Estado</th><th>Producto</th><th>Código</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Cant.</th><th>Precio venta</th><th>Fecha compra</th><th>Avisos</th></tr></thead><tbody id="importBody"></tbody></table></div>
     <div class="modal-actions"><button class="btn" onclick="closeImportModal()">Cancelar</button><button class="btn primary" id="importConfirmBtn" onclick="confirmInventoryImport()">Confirmar e importar</button></div>
