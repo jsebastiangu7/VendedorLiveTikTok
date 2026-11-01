@@ -1378,7 +1378,7 @@ function buildImportPreview(grid,fileName){
       else seenCodes.set(nc,nombre.toLowerCase());
       if(prod&&prod.codigo&&normCode(prod.codigo)!==normCode(codigo))warns.push(`Ya tiene otro código (${prod.codigo}); no se cambia`);
     }
-    importRows.push({fmtErrs:[...errs],line:hi+2+n,nombre,codigo,categoria,costo:costo.empty?null:costo.n,envio:envio.empty?null:envio.n,cantidad:cant.n,precio:precio.empty?null:precio.n,fecha,prod:prod?prod.producto:null,errs,warns});
+    importRows.push({precioFile:precio.empty?null:precio.n,precioManual:false,fmtErrs:[...errs],line:hi+2+n,nombre,codigo,categoria,costo:costo.empty?null:costo.n,envio:envio.empty?null:envio.n,cantidad:cant.n,precio:precio.empty?null:precio.n,fecha,prod:prod?prod.producto:null,errs,warns});
   });
   if(!importRows.length){alert('No encontré filas con datos debajo de los encabezados.');return}
   importFileName=fileName;importRows.forEach(r=>{r.auto=r.prod?'existente':'nuevo'});
@@ -1395,7 +1395,7 @@ function importRevalidate(r){
 function importStateChanged(i,val){
   const r=importRows[i];if(!r)return;
   if(val==='existente'){openImportAssign(i);return}
-  r.prod=null;renderImportPreview();
+  r.prod=null;r.precioManual=false;renderImportPreview();
 }
 function openImportAssign(i){
   const r=importRows[i];if(!r)return;importAssignIdx=i;
@@ -1412,21 +1412,25 @@ function openImportAssign(i){
 function importAssignChanged(){
   const r=importRows[importAssignIdx];if(!r)return;
   const p=state.inventory.find(x=>x.producto===$('impAssignProduct').value);if(!p)return;
-  $('impAssignCurrent').innerHTML=`Actual en inventario — costo: <b>${money(p.costo)}</b> · envío: <b>${money(p.envio)}</b> · precio de venta: <b>${money(p.precio)}</b> · stock: <b>${p.stock}</b>`+(r.costo!=null||r.precio!=null?`<br>Del archivo — costo: <b>${r.costo!=null?money(r.costo):'—'}</b> · precio de venta: <b>${r.precio!=null?money(r.precio):'—'}</b>`:'');
+  $('impAssignCurrent').innerHTML=`Actual en inventario — costo: <b>${money(p.costo)}</b> · envío: <b>${money(p.envio)}</b> · precio de venta: <b>${money(p.precio)}</b> · stock: <b>${p.stock}</b>`+(r.costo!=null||r.precioFile!=null?`<br>Del archivo — costo: <b>${r.costo!=null?money(r.costo):'—'}</b> · precio de venta: <b>${r.precioFile!=null?money(r.precioFile):'—'}</b> <i>(el precio del sistema predomina)</i>`:'');
   $('impAssignCost').value=r.costo!=null?r.costo:(Number(p.costo)||0);
-  $('impAssignPrice').value=r.precio!=null?r.precio:(Number(p.precio)||0);
+  $('impAssignPrice').value=Number(p.precio)||0;
 }
 function confirmImportAssign(){
   const r=importRows[importAssignIdx];if(!r)return;
   const name=$('impAssignProduct').value;if(!state.inventory.some(p=>p.producto===name)){alert('Selecciona un producto.');return}
   const c=Number($('impAssignCost').value),pr=Number($('impAssignPrice').value);
   if(!(c>=0)||!(pr>=0)){alert('Costo y precio deben ser números mayores o iguales a 0.');return}
-  r.prod=name;r.costo=c;r.precio=pr;
+  r.prod=name;r.costo=c;r.precio=pr;r.precioManual=true;
   $('importAssignModal').classList.remove('open');importAssignIdx=-1;renderImportPreview();
 }
 function cancelImportAssign(){$('importAssignModal').classList.remove('open');importAssignIdx=-1;renderImportPreview()}
 function renderImportPreview(fileName){
   if(fileName)importFileName=fileName;fileName=importFileName;
+  importRows.forEach(r=>{ // el precio de venta del sistema predomina sobre el del archivo en productos existentes
+    if(r.prod&&!r.precioManual){const sp=state.inventory.find(x=>x.producto===r.prod);r.precio=sp?(Number(sp.precio)||0):r.precio}
+    else if(!r.prod){r.precio=r.precioFile;r.precioManual=false}
+  });
   importRows.forEach(importRevalidate);
   const ok=importRows.filter(r=>!r.errs.length);
   const nuevos=ok.filter(r=>!r.prod).length,exist=ok.length-nuevos,bad=importRows.length-ok.length;
@@ -1457,7 +1461,7 @@ function confirmInventoryImport(){
     }else{
       if(r.costo!=null)p.costo=r.costo;
       if(r.envio!=null)p.envio=r.envio;
-      if(r.precio!=null)p.precio=r.precio;
+      if(r.precioManual&&r.precio!=null)p.precio=r.precio; // solo si lo editaste en el modal; si no, queda el del sistema
       if(cat)p.categoria=cat;
       p.fechaCompra=fecha;actualizados++;
     }
@@ -2240,7 +2244,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
 <div id="importModal" class="modal-backdrop" onclick="if(event.target===this)closeImportModal()">
   <div class="modal" style="width:min(1000px,calc(100% - 30px))">
     <h2>Revisar archivo de inventario</h2>
-    <div class="note">Nada se aplica hasta que confirmes. La <strong>Cantidad</strong> se suma al stock actual. Los productos se identifican por código de barras o, si no hay, por nombre exacto; si ya existen se actualizan costo, envío, precio, categoría y fecha de compra con los valores del archivo.</div>
+    <div class="note">Nada se aplica hasta que confirmes. La <strong>Cantidad</strong> se suma al stock actual. Los productos se identifican por código de barras o, si no hay, por nombre exacto; si ya existen se actualizan costo, envío, categoría y fecha de compra con los valores del archivo; el precio de venta del sistema no se modifica (solo si lo editas en el modal de asignación).</div>
     <div id="importSummary" style="margin:10px 0"></div>
     <div class="tablewrap" style="max-height:340px"><table><thead><tr><th>Fila</th><th style="min-width:150px">Estado</th><th>Producto</th><th>Código</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Cant.</th><th>Precio venta</th><th>Fecha compra</th><th>Avisos</th></tr></thead><tbody id="importBody"></tbody></table></div>
     <div class="modal-actions"><button class="btn" onclick="closeImportModal()">Cancelar</button><button class="btn primary" id="importConfirmBtn" onclick="confirmInventoryImport()">Confirmar e importar</button></div>
@@ -2254,7 +2258,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
       <div class="field"><label>Producto existente</label><select id="impAssignProduct" onchange="importAssignChanged()"></select></div>
       <div class="note" id="impAssignCurrent"></div>
       <div class="field"><label>Costo (se actualizará)</label><input id="impAssignCost" type="number" min="0"></div>
-      <div class="field"><label>Precio de venta (se actualizará)</label><input id="impAssignPrice" type="number" min="0"></div>
+      <div class="field"><label>Precio de venta (el del sistema; solo cambia si lo editas)</label><input id="impAssignPrice" type="number" min="0"></div>
     </div>
     <div class="modal-actions"><button class="btn" onclick="cancelImportAssign()">Cancelar</button><button class="btn primary" onclick="confirmImportAssign()">Asignar</button></div>
   </div>
