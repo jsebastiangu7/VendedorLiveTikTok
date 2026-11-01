@@ -107,6 +107,45 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     <div class="card"><div class="label">Stock bajo</div><div class="metric" id="mStock">0</div></div>
   </div>
   <div class="panel" style="margin-top:14px">
+    <h2>Utilidad bruta</h2>
+    <div class="toolbar" style="margin-bottom:10px">
+      <select id="utilView" onchange="renderUtilidad()"><option value="dia">Diaria (fechas específicas)</option><option value="semana">Semanal</option><option value="mes">Mensual</option><option value="semestre">Semestral</option><option value="anio">Anual</option><option value="total" selected>Total</option></select>
+      <span class="utilCtl" data-v="dia"><input id="utilFrom" type="date" onchange="renderUtilidad()"> <span class="note">hasta</span> <input id="utilTo" type="date" onchange="renderUtilidad()"></span>
+      <span class="utilCtl" data-v="semana"><input id="utilWeek" type="date" onchange="renderUtilidad()"> <span class="note">(semana lunes–domingo que contiene esta fecha)</span></span>
+      <span class="utilCtl" data-v="mes"><select id="utilMonth" onchange="renderUtilidad()"></select></span>
+      <span class="utilCtl" data-v="semestre"><select id="utilSem" onchange="renderUtilidad()"><option value="1">Semestre 1 (ene–jun)</option><option value="2">Semestre 2 (jul–dic)</option></select></span>
+      <span class="utilCtl" data-v="mes semestre anio"><select id="utilYear" onchange="renderUtilidad()"></select></span>
+      <label class="note" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="utilShip" checked onchange="renderUtilidad()"> Incluir envío en el costo</label>
+    </div>
+    <div id="utilRange" class="note" style="margin-bottom:10px"></div>
+    <div class="grid cards3">
+      <div class="card"><div class="label">Ventas del periodo</div><div class="metric" id="uVentas">$0</div></div>
+      <div class="card"><div class="label">Costo de lo vendido</div><div class="metric" id="uCosto">$0</div></div>
+      <div class="card"><div class="label">Utilidad bruta</div><div class="metric" id="uUtil">$0</div></div>
+      <div class="card"><div class="label">Margen bruto</div><div class="metric" id="uMargen">0%</div></div>
+    </div>
+    <div id="utilTop" style="margin-top:12px"></div>
+    <div class="note" style="margin-top:10px">Utilidad bruta = ventas − costo de lo vendido (costo del producto y, si está marcado, su envío). Cuenta los productos de pedidos no cancelados, en la fecha en que se registró cada producto en el pedido. No descuenta gastos operativos (publicidad, empaques, comisiones, etc.).</div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>Impuesto de renta estimado — persona natural, Colombia</h2>
+    <div class="toolbar" style="margin-bottom:10px">
+      <label class="note">Año a estimar <select id="taxYear" onchange="renderTax()"></select></label>
+      <label class="note">UVT 2027 (estimada) <input id="taxUvt" type="number" min="1" style="width:110px" oninput="taxCfgChanged()"></label>
+      <label class="note">Gastos deducibles del año <input id="taxExp" type="number" min="0" style="width:130px" oninput="taxCfgChanged()"></label>
+    </div>
+    <div class="grid cards3">
+      <div class="card"><div class="label">Ingresos brutos (ventas del año)</div><div class="metric" id="tIngresos">$0</div></div>
+      <div class="card"><div class="label">Utilidad bruta del año</div><div class="metric" id="tUtil">$0</div></div>
+      <div class="card"><div class="label">Renta líquida estimada</div><div class="metric" id="tBase">$0</div></div>
+      <div class="card"><div class="label">Base en UVT</div><div class="metric" id="tUvt">0</div></div>
+      <div class="card"><div class="label">Impuesto de renta estimado</div><div class="metric" id="tImpuesto">$0</div></div>
+      <div class="card"><div class="label">Tarifa efectiva</div><div class="metric" id="tEfectiva">0%</div></div>
+    </div>
+    <div id="taxObligation" style="margin-top:10px;font-weight:650;font-size:13px"></div>
+    <div class="note" style="margin-top:8px">Estimación orientativa con la tarifa del art. 241 del Estatuto Tributario (0 % hasta 1.090 UVT; 19 %, 28 %, 33 %, 35 %, 37 % y 39 % en los rangos siguientes). La UVT 2027 aún no es oficial: $55.668 es el valor estimado publicado (la de 2026 es $52.374); edítala cuando la DIAN la fije. Renta líquida = utilidad bruta − gastos deducibles que ingreses. No incluye otras rentas, patrimonio, deducciones personales ni anticipos; confirma con un contador antes de declarar.</div>
+  </div>
+  <div class="panel" style="margin-top:14px">
     <h2>Valor de inventario</h2>
     <div class="grid cards3">
       <div class="card"><div class="label">Monto total del inventario (costo)</div><div class="metric" id="mInvTotal">$0</div></div>
@@ -245,7 +284,7 @@ let editingOrder=null;
 
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0).replace(/ /g,' ');
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}; // fecha local (no UTC)
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 let autoSyncTimer=null;
 function persist(){
@@ -361,6 +400,7 @@ function renderDashboard(){
   const low=state.inventory.map(p=>({...p,...stockInfo(p)})).filter(p=>p.status!=='EN STOCK');
   $('lowStock').innerHTML=low.length?low.map(p=>`<div class="statusbar"><span>${esc(p.producto)}</span>${pill(p.status)} <b>${p.current}</b></div>`).join(''):'<div class="empty">No hay productos con stock bajo.</div>';
   fillDashboardClients();
+  renderUtilidad();
 }
 function fillDashboardClients(){
   const s=$('dashboardClient'); if(!s)return;
@@ -562,7 +602,7 @@ function closeProductModal(){$('productModal').classList.remove('open')}
 function toggleProductFields(){
   const stockMode=$('productAction').value==='stock';
   $('existingProductField').style.display=stockMode?'flex':'none';
-  $('newProductName').disabled=stockMode;$('newProductCategory').disabled=stockMode;$('newProductCost').disabled=stockMode;$('newProductShipping').disabled=stockMode;$('newProductPrice').disabled=stockMode;$('newProductMin').disabled=stockMode;$('newProductDate').disabled=stockMode;$('newProductCodigo').disabled=stockMode;$('newProductCodigoBtn').disabled=stockMode;
+  $('newProductName').disabled=stockMode;$('newProductCategory').disabled=stockMode;$('newProductCost').disabled=stockMode;$('newProductShipping').disabled=stockMode;$('newProductPrice').disabled=stockMode;$('newProductMin').disabled=stockMode;$('newProductCodigo').disabled=stockMode;$('newProductCodigoBtn').disabled=stockMode;
 }
 function saveProductModal(){
   const qty=Number($('newProductStock').value)||0;
@@ -571,7 +611,8 @@ function saveProductModal(){
     const name=$('existingProduct').value,p=state.inventory.find(x=>x.producto===name);
     if(!p){alert('Selecciona un producto.');return}
     p.stock=(Number(p.stock)||0)+qty;
-    persist();closeProductModal();refresh();alert(`Se adicionaron ${qty} unidades a ${name}.`);return;
+    const fc=$('newProductDate').value;if(qty>0&&fc)p.fechaCompra=fc; // fecha de la nueva compra
+    persist();closeProductModal();refresh();alert(`Se adicionaron ${qty} unidades a ${name}${qty>0&&fc?' (compra del '+fc+')':''}.`);return;
   }
   const name=$('newProductName').value.trim();
   if(!name){alert('Indica el nombre del producto.');return}
@@ -1254,7 +1295,7 @@ function enhanceSearchable(select){
 const IMPORT_COLS=['Producto','Código de barras','Categoría','Costo','Envío','Cantidad','Precio venta','Fecha compra'];
 const impNorm=t=>String(t==null?'':t).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const IMP_ALIAS={producto:'producto',nombre:'producto',codigodebarras:'codigo',codigo:'codigo',codbarras:'codigo',barras:'codigo',categoria:'categoria',costo:'costo',envio:'envio',cantidad:'cantidad',cant:'cantidad',precioventa:'precio',precio:'precio',fechacompra:'fecha',fecha:'fecha'};
-let importRows=[];
+let importRows=[],importFileName='',importAssignIdx=-1;
 function impNum(v){
   if(v==null||v==='')return {empty:true,n:0};
   if(typeof v==='number')return isFinite(v)?{n:v}:{bad:true};
@@ -1337,18 +1378,63 @@ function buildImportPreview(grid,fileName){
       else seenCodes.set(nc,nombre.toLowerCase());
       if(prod&&prod.codigo&&normCode(prod.codigo)!==normCode(codigo))warns.push(`Ya tiene otro código (${prod.codigo}); no se cambia`);
     }
-    importRows.push({line:hi+2+n,nombre,codigo,categoria,costo:costo.empty?null:costo.n,envio:envio.empty?null:envio.n,cantidad:cant.n,precio:precio.empty?null:precio.n,fecha,prod:prod?prod.producto:null,errs,warns});
+    importRows.push({fmtErrs:[...errs],line:hi+2+n,nombre,codigo,categoria,costo:costo.empty?null:costo.n,envio:envio.empty?null:envio.n,cantidad:cant.n,precio:precio.empty?null:precio.n,fecha,prod:prod?prod.producto:null,errs,warns});
   });
   if(!importRows.length){alert('No encontré filas con datos debajo de los encabezados.');return}
+  importFileName=fileName;importRows.forEach(r=>{r.auto=r.prod?'existente':'nuevo'});
   renderImportPreview(fileName);
 }
+function importRevalidate(r){
+  r.errs=[...(r.fmtErrs||[])];
+  if(!r.prod){ // "Nuevo": no puede chocar con un producto que ya existe
+    if(r.nombre&&state.inventory.some(p=>p.producto.trim().toLowerCase()===r.nombre.toLowerCase()))r.errs.push('Ya existe un producto con ese nombre: cámbialo a "Existente"');
+    const dup=r.codigo?findProductByCode(r.codigo):null;
+    if(dup)r.errs.push(`El código ya pertenece a "${dup.producto}": cámbialo a "Existente"`);
+  }
+}
+function importStateChanged(i,val){
+  const r=importRows[i];if(!r)return;
+  if(val==='existente'){openImportAssign(i);return}
+  r.prod=null;renderImportPreview();
+}
+function openImportAssign(i){
+  const r=importRows[i];if(!r)return;importAssignIdx=i;
+  const sorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
+  if(!sorted.length){alert('No hay productos en el inventario para asignar.');renderImportPreview();return}
+  const sel=$('impAssignProduct');
+  sel.innerHTML=sorted.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)}</option>`).join('');
+  sel.value=r.prod||(sorted.find(p=>p.producto.toLowerCase()===r.nombre.toLowerCase())||sorted[0]).producto;
+  if(sel._ssRefresh)sel._ssRefresh();else enhanceSearchable(sel);
+  $('impAssignRow').textContent=`Fila ${r.line}: «${r.nombre}» — cantidad ${r.cantidad}`;
+  importAssignChanged();
+  $('importAssignModal').classList.add('open');
+}
+function importAssignChanged(){
+  const r=importRows[importAssignIdx];if(!r)return;
+  const p=state.inventory.find(x=>x.producto===$('impAssignProduct').value);if(!p)return;
+  $('impAssignCurrent').innerHTML=`Actual en inventario — costo: <b>${money(p.costo)}</b> · envío: <b>${money(p.envio)}</b> · precio de venta: <b>${money(p.precio)}</b> · stock: <b>${p.stock}</b>`+(r.costo!=null||r.precio!=null?`<br>Del archivo — costo: <b>${r.costo!=null?money(r.costo):'—'}</b> · precio de venta: <b>${r.precio!=null?money(r.precio):'—'}</b>`:'');
+  $('impAssignCost').value=r.costo!=null?r.costo:(Number(p.costo)||0);
+  $('impAssignPrice').value=r.precio!=null?r.precio:(Number(p.precio)||0);
+}
+function confirmImportAssign(){
+  const r=importRows[importAssignIdx];if(!r)return;
+  const name=$('impAssignProduct').value;if(!state.inventory.some(p=>p.producto===name)){alert('Selecciona un producto.');return}
+  const c=Number($('impAssignCost').value),pr=Number($('impAssignPrice').value);
+  if(!(c>=0)||!(pr>=0)){alert('Costo y precio deben ser números mayores o iguales a 0.');return}
+  r.prod=name;r.costo=c;r.precio=pr;
+  $('importAssignModal').classList.remove('open');importAssignIdx=-1;renderImportPreview();
+}
+function cancelImportAssign(){$('importAssignModal').classList.remove('open');importAssignIdx=-1;renderImportPreview()}
 function renderImportPreview(fileName){
+  if(fileName)importFileName=fileName;fileName=importFileName;
+  importRows.forEach(importRevalidate);
   const ok=importRows.filter(r=>!r.errs.length);
   const nuevos=ok.filter(r=>!r.prod).length,exist=ok.length-nuevos,bad=importRows.length-ok.length;
   $('importSummary').innerHTML=`<strong>${esc(fileName)}</strong> — ${importRows.length} filas: <strong>${nuevos}</strong> producto(s) nuevo(s), <strong>${exist}</strong> existente(s) (se suma la cantidad al stock)${bad?`, <strong style="color:#c0392b">${bad} con errores (se omiten)</strong>`:''}.`;
   const m=v=>v==null?'—':money(v);
   $('importBody').innerHTML=importRows.map(r=>{
-    const est=r.errs.length?`<span style="color:#c0392b;font-weight:700">Error</span>`:(r.prod?'Existente':'Nuevo');
+    const i=importRows.indexOf(r);
+    const est=`<select onchange="importStateChanged(${i},this.value)" style="padding:4px;border-radius:6px;border:1px solid var(--field-border);background:var(--field-bg);color:var(--ink)"><option value="nuevo" ${r.prod?'':'selected'}>Nuevo</option><option value="existente" ${r.prod?'selected':''}>Existente</option></select>`+(r.prod?`<div class="note" style="margin-top:3px">→ ${esc(r.prod)} <a href="#" onclick="openImportAssign(${i});return false">cambiar</a></div>`:'')+(r.errs.length?`<div style="color:#c0392b;font-weight:700;font-size:12px">Con error</div>`:(r.manual?'':''));
     const notes=[...r.errs.map(e=>`<span style="color:#c0392b">${esc(e)}</span>`),...r.warns.map(e=>`<span style="color:#b9770e">${esc(e)}</span>`)].join('<br>');
     return `<tr${r.errs.length?' style="opacity:.75"':''}><td>${r.line}</td><td>${est}</td><td>${esc(r.nombre)}</td><td>${esc(r.codigo||'—')}</td><td>${esc(r.categoria||'—')}</td><td>${m(r.costo)}</td><td>${m(r.envio)}</td><td>${r.cantidad}</td><td>${m(r.precio)}</td><td>${esc(r.fecha||'hoy')}</td><td>${notes}</td></tr>`;
   }).join('');
@@ -1986,6 +2072,109 @@ function saveClientPayments(){
   refresh();
   alert(`Se registraron ${items.length} abono${items.length===1?'':'s'} por ${money(total)} a ${pcClient}.`);
 }
+/* ===== Utilidad bruta e impuesto de renta estimado ===== */
+const MONTHS_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function unitCostOf(name,withShip,depth){
+  const p=state.inventory.find(x=>x.producto===name);
+  if(p)return (Number(p.costo)||0)+(withShip?(Number(p.envio)||0):0);
+  const k=(state.kits||[]).find(x=>x.nombre===name);
+  if(k&&(depth||0)<3)return (k.componentes||[]).reduce((a,c)=>a+(Number(c.cantidad)||0)*unitCostOf(c.producto,withShip,(depth||0)+1),0);
+  return 0;
+}
+function salesLines(withShip){
+  const out=[];
+  state.orders.filter(o=>o.estado!=='Cancelado').forEach(o=>(o.lineas||[]).forEach(l=>{
+    const q=Number(l.cantidad)||0;
+    out.push({fecha:String(l.fecha||o.fecha||''),producto:l.producto,qty:q,venta:(Number(l.precio)||0)*q,costo:unitCostOf(l.producto,withShip)*q});
+  }));
+  return out;
+}
+const isoD=d=>d.toISOString().slice(0,10);
+function fillSelectKeep(sel,html,def){const cur=sel.value;sel.innerHTML=html;sel.value=[...sel.options].some(o=>o.value===cur)?cur:def}
+function yearOptions(){
+  const ys=new Set([new Date().getFullYear()]);
+  state.orders.forEach(o=>{const y=parseInt(String(o.fecha).slice(0,4));if(y)ys.add(y);(o.lineas||[]).forEach(l=>{const yl=parseInt(String(l.fecha||'').slice(0,4));if(yl)ys.add(yl)})});
+  return [...ys].sort((a,b)=>b-a);
+}
+function utilPeriod(){
+  const v=$('utilView').value,y=Number($('utilYear').value)||new Date().getFullYear();
+  if(v==='total')return {from:'0000-01-01',to:'9999-12-31',label:'Todo el historial'};
+  if(v==='dia'){
+    let f=$('utilFrom').value||today(),t=$('utilTo').value||f;if(t<f)[f,t]=[t,f];
+    return {from:f,to:t,label:f===t?f:`${f} a ${t}`};
+  }
+  if(v==='semana'){
+    const base=new Date(($('utilWeek').value||today())+'T12:00:00Z');
+    const dow=(base.getUTCDay()+6)%7;const mon=new Date(base.getTime()-dow*86400000),sun=new Date(mon.getTime()+6*86400000);
+    return {from:isoD(mon),to:isoD(sun),label:`Semana ${isoD(mon)} a ${isoD(sun)}`};
+  }
+  if(v==='mes'){
+    const m=Number($('utilMonth').value);const last=new Date(Date.UTC(y,m+1,0)).getUTCDate();
+    const mm=String(m+1).padStart(2,'0');return {from:`${y}-${mm}-01`,to:`${y}-${mm}-${String(last).padStart(2,'0')}`,label:`${MONTHS_ES[m]} ${y}`};
+  }
+  if(v==='semestre'){
+    const sm=$('utilSem').value==='2';return {from:`${y}-${sm?'07':'01'}-01`,to:`${y}-${sm?'12-31':'06-30'}`,label:`Semestre ${sm?2:1} de ${y}`};
+  }
+  return {from:`${y}-01-01`,to:`${y}-12-31`,label:`Año ${y}`};
+}
+function renderUtilidad(){
+  if(!$('utilView'))return;
+  const yrs=yearOptions();
+  fillSelectKeep($('utilYear'),yrs.map(y=>`<option>${y}</option>`).join(''),String(yrs[0]));
+  if(!$('utilMonth').options.length)$('utilMonth').innerHTML=MONTHS_ES.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  if(!$('utilMonth').dataset.init){$('utilMonth').value=String(new Date().getMonth());$('utilMonth').dataset.init='1'}
+  if(!$('utilSem').dataset.init){$('utilSem').value=new Date().getMonth()>=6?'2':'1';$('utilSem').dataset.init='1'}
+  if(!$('utilFrom').value)$('utilFrom').value=today();
+  if(!$('utilTo').value)$('utilTo').value=today();
+  if(!$('utilWeek').value)$('utilWeek').value=today();
+  const v=$('utilView').value;
+  document.querySelectorAll('.utilCtl').forEach(el=>{el.style.display=el.dataset.v.split(' ').includes(v)?'':'none'});
+  const per=utilPeriod(),withShip=$('utilShip').checked;
+  const rows=salesLines(withShip).filter(r=>r.fecha>=per.from&&r.fecha<=per.to);
+  const ventas=rows.reduce((a,r)=>a+r.venta,0),costo=rows.reduce((a,r)=>a+r.costo,0),util=ventas-costo;
+  $('utilRange').textContent='Periodo: '+per.label;
+  $('uVentas').textContent=money(ventas);$('uCosto').textContent=money(costo);
+  $('uUtil').textContent=money(util);$('uUtil').style.color=util<0?'#c0392b':'';
+  $('uMargen').textContent=ventas>0?(util/ventas*100).toFixed(1)+'%':'0%';
+  const by={};rows.forEach(r=>{const o=by[r.producto]||(by[r.producto]={producto:r.producto,qty:0,venta:0,costo:0});o.qty+=r.qty;o.venta+=r.venta;o.costo+=r.costo});
+  const top=Object.values(by).map(o=>({...o,util:o.venta-o.costo})).sort((a,b)=>b.util-a.util).slice(0,10);
+  $('utilTop').innerHTML=top.length?`<div class="tablewrap"><table><thead><tr><th>Producto (top 10 por utilidad)</th><th>Unid.</th><th>Ventas</th><th>Costo</th><th>Utilidad</th></tr></thead><tbody>${top.map(o=>`<tr><td>${esc(o.producto)}</td><td>${o.qty}</td><td>${money(o.venta)}</td><td>${money(o.costo)}</td><td>${money(o.util)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay ventas en este periodo.</div>';
+  renderTax();
+}
+const UVT_2027_ESTIMADA=55668;
+const TAX_TABLE=[[0,1090,0,0],[1090,1700,0.19,0],[1700,4100,0.28,116],[4100,8670,0.33,788],[8670,18970,0.35,2296],[18970,31000,0.37,5901],[31000,Infinity,0.39,10352]];
+function incomeTaxUvt(baseUvt){
+  const r=TAX_TABLE.find(x=>baseUvt>x[0]&&baseUvt<=x[1]);
+  return r?(baseUvt-r[0])*r[2]+r[3]:0;
+}
+function taxCfg(){if(!state.taxConfig)state.taxConfig={uvt:UVT_2027_ESTIMADA,gastos:{}};return state.taxConfig}
+function taxCfgChanged(){
+  const c=taxCfg(),y=$('taxYear').value;
+  c.uvt=Number($('taxUvt').value)||UVT_2027_ESTIMADA;
+  c.gastos[y]=Number($('taxExp').value)||0;
+  localStorage.setItem(KEY,JSON.stringify(state));
+  clearTimeout(taxCfgChanged._t);taxCfgChanged._t=setTimeout(persist,800);
+  renderTax(true);
+}
+function renderTax(keepInputs){
+  if(!$('taxYear'))return;
+  const c=taxCfg(),yrs=yearOptions();
+  fillSelectKeep($('taxYear'),yrs.map(y=>`<option>${y}</option>`).join(''),String(new Date().getFullYear()));
+  const y=$('taxYear').value;
+  if(!keepInputs){$('taxUvt').value=c.uvt||UVT_2027_ESTIMADA;$('taxExp').value=c.gastos[y]||0}
+  const uvt=Number($('taxUvt').value)||UVT_2027_ESTIMADA,gastos=Number($('taxExp').value)||0;
+  const rows=salesLines($('utilShip').checked).filter(r=>r.fecha.slice(0,4)===y);
+  const ingresos=rows.reduce((a,r)=>a+r.venta,0),util=ingresos-rows.reduce((a,r)=>a+r.costo,0);
+  const base=Math.max(0,util-gastos),baseUvt=base/uvt,impUvt=incomeTaxUvt(baseUvt),imp=Math.round(impUvt*uvt);
+  $('tIngresos').textContent=money(ingresos);$('tUtil').textContent=money(util);$('tBase').textContent=money(base);
+  $('tUvt').textContent=baseUvt.toLocaleString('es-CO',{maximumFractionDigits:1})+' UVT';
+  $('tImpuesto').textContent=money(imp);
+  $('tEfectiva').textContent=base>0?(imp/base*100).toFixed(1)+'%':'0%';
+  const tope=1400*uvt;
+  $('taxObligation').textContent=ingresos>=tope
+    ?`⚠ Tus ingresos brutos del año (${money(ingresos)}) superan 1.400 UVT (${money(tope)}): probablemente estás obligado a declarar renta.`
+    :`Tus ingresos brutos del año no superan 1.400 UVT (${money(tope)}). Aun así, podrías estar obligado a declarar por patrimonio, consumos con tarjeta, compras o consignaciones (también 1.400 UVT; patrimonio 4.500 UVT).`;
+}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal();
 </script>
 
@@ -2003,7 +2192,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
       <div class="field"><label>Envío / costo adicional</label><input id="newProductShipping" type="number" min="0" value="0"></div>
       <div class="field"><label>Precio de venta</label><input id="newProductPrice" type="number" min="0" value="0"></div>
       <div class="field"><label>Mínimo de reposición</label><input id="newProductMin" type="number" min="0" value="1"></div>
-      <div class="field"><label>Fecha de compra</label><input id="newProductDate" type="date"></div>
+      <div class="field"><label>Fecha de compra (de esta compra)</label><input id="newProductDate" type="date"></div>
     </div>
     <div class="modal-actions"><button class="btn" onclick="closeProductModal()">Cancelar</button><button class="btn primary" onclick="saveProductModal()">Guardar</button></div>
   </div>
@@ -2053,8 +2242,21 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <h2>Revisar archivo de inventario</h2>
     <div class="note">Nada se aplica hasta que confirmes. La <strong>Cantidad</strong> se suma al stock actual. Los productos se identifican por código de barras o, si no hay, por nombre exacto; si ya existen se actualizan costo, envío, precio, categoría y fecha de compra con los valores del archivo.</div>
     <div id="importSummary" style="margin:10px 0"></div>
-    <div class="tablewrap" style="max-height:340px"><table><thead><tr><th>Fila</th><th>Estado</th><th>Producto</th><th>Código</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Cant.</th><th>Precio venta</th><th>Fecha compra</th><th>Avisos</th></tr></thead><tbody id="importBody"></tbody></table></div>
+    <div class="tablewrap" style="max-height:340px"><table><thead><tr><th>Fila</th><th style="min-width:150px">Estado</th><th>Producto</th><th>Código</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Cant.</th><th>Precio venta</th><th>Fecha compra</th><th>Avisos</th></tr></thead><tbody id="importBody"></tbody></table></div>
     <div class="modal-actions"><button class="btn" onclick="closeImportModal()">Cancelar</button><button class="btn primary" id="importConfirmBtn" onclick="confirmInventoryImport()">Confirmar e importar</button></div>
+  </div>
+</div>
+<div id="importAssignModal" class="modal-backdrop" style="z-index:150" onclick="if(event.target===this)cancelImportAssign()">
+  <div class="modal" style="width:min(520px,calc(100% - 30px))">
+    <h2>Asignar a producto existente</h2>
+    <div class="note" id="impAssignRow"></div>
+    <div class="formgrid" style="grid-template-columns:1fr;margin-top:10px">
+      <div class="field"><label>Producto existente</label><select id="impAssignProduct" onchange="importAssignChanged()"></select></div>
+      <div class="note" id="impAssignCurrent"></div>
+      <div class="field"><label>Costo (se actualizará)</label><input id="impAssignCost" type="number" min="0"></div>
+      <div class="field"><label>Precio de venta (se actualizará)</label><input id="impAssignPrice" type="number" min="0"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="cancelImportAssign()">Cancelar</button><button class="btn primary" onclick="confirmImportAssign()">Asignar</button></div>
   </div>
 </div>
 <div id="scannerModal" class="modal-backdrop" style="z-index:200">
