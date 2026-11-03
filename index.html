@@ -3,6 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob: https://*.googleusercontent.com https://www.gstatic.com; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com https://cdn.jsdelivr.net; frame-src https://accounts.google.com https://content.googleapis.com https://apis.google.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="format-detection" content="telephone=no">
+<script>
+/* Seguridad: forzar HTTPS (salvo localhost) y no permitir que otra página embeba este gestor en un iframe */
+(function(){try{
+  if(location.protocol==='http:'&&!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname))location.replace('https://'+location.host+location.pathname+location.search+location.hash);
+  if(window.top!==window.self){document.documentElement.style.display='none';window.top.location=window.self.location}
+}catch(e){}})();
+</script>
 <title>Gestor de Ventas — LIVE TikTok</title>
 <style>
 :root{--bg:#ffffff;--card:#ffffff;--ink:#161616;--muted:#5c6a5f;--primary:#3f7d4a;--primary2:#2f5f38;--primary-light:#e9f4ea;--ok:#2f7d4a;--warn:#a9660a;--danger:#c0392b;--border:#e3e7e3;--field-bg:#ffffff;--field-border:#ccd4cc;--thead-bg:#f7faf7;--row-border:#eef1ee}
@@ -77,7 +87,7 @@ td .ss-wrap,.field .ss-wrap{width:100%}
   <button class="btn" id="driveConnectBtn" onclick="driveConnect()">Conectar Google Drive</button>
   <span id="driveStatus" class="note">Sin conectar</span>
   <span id="autoSaveStatus" class="note"></span>
-  <button class="btn" onclick="exportBackup()" title="Descarga todos tus datos en un archivo JSON">Exportar respaldo</button>
+  <button class="btn" onclick="exportBackup()" title="Descarga todos tus datos en un archivo JSON (puedes cifrarlo con contraseña)">Exportar respaldo</button>
   <button class="btn" onclick="$('importFile').click()" title="Restaura datos desde un respaldo JSON">Importar respaldo</button>
   <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
   <button class="save" onclick="saveAll()">Guardar</button>
@@ -435,7 +445,8 @@ function renderOrders(){
   const arr=state.orders.filter(o=>(!q||o.id.toLowerCase().includes(q)||o.cliente.toLowerCase().includes(q))&&(!f||o.estado===f)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   $('ordersBody').innerHTML=arr.length?arr.map(o=>{let t=orderTotal(o),p=paid(o);return `<tr><td>${esc(o.id)}</td><td>${esc(o.fecha)}</td><td>${esc(o.cliente)}</td><td>${money(t)}</td><td>${money(p)}</td><td>${money(Math.max(0,t-p))}</td><td>${pill(o.estado)}</td><td class="action-row"><button class="btn" onclick="editOrder('${js(o.id)}')">Editar</button><button class="btn" onclick="choosePayment('${js(o.id)}')">Abono</button><button class="btn primary" onclick="generateInvoice('${js(o.id)}')">Generar Factura</button><button class="btn danger" onclick="deleteOrder('${js(o.id)}')">Eliminar</button></td></tr>`}).join(''):'<tr><td colspan="8" class="empty">No hay pedidos.</td></tr>';
 }
-function js(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+// Escapa para usar dentro de onclick="fn('...')": primero JS (\\ y '), luego HTML (&, <, >, ", ') para que un nombre con comillas no pueda inyectar atributos/código
+function js(s){return esc(String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' '))}
 function renderInventory(){
   const q=($('invSearch')?.value||'').toLowerCase(), f=$('invFilter')?.value||'';
   const arr=state.inventory.map(p=>({...p,...stockInfo(p)})).filter(p=>(!q||p.producto.toLowerCase().includes(q)||String(p.codigo||'').toLowerCase().includes(q))&&(!f||p.status===f));
@@ -682,8 +693,9 @@ function loadInvoiceConfig(){
 }
 function handleLogoUpload(e){
   const file=e.target.files[0];if(!file)return;
+  if(!checkFile(file,{maxMB:2,exts:['png','jpg','jpeg','webp'],label:'Logo'})){e.target.value='';return}
   const reader=new FileReader();
-  reader.onload=ev=>{state.invoiceConfig.logo=ev.target.result;$('invLogoPreview').src=ev.target.result;$('invLogoPreview').style.display='inline-block';persist()};
+  reader.onload=ev=>{const url=ev.target.result;if(!SAN_IMG.test(url)){alert('Logo: la imagen no es válida (usa PNG, JPG o WEBP).');e.target.value='';return}const im=new Image();im.onerror=()=>{alert('Logo: no se pudo leer la imagen.');e.target.value=''};im.onload=()=>{state.invoiceConfig.logo=url;$('invLogoPreview').src=url;$('invLogoPreview').style.display='inline-block';persist()};im.src=url};
   reader.readAsDataURL(file);
 }
 function clearInvoiceLogo(){
@@ -692,10 +704,13 @@ function clearInvoiceLogo(){
 }
 function handleWatermarkUpload(e){
   const file=e.target.files[0];if(!file)return;
+  if(!checkFile(file,{maxMB:2,exts:['png','jpg','jpeg','webp'],label:'Marca de agua'})){e.target.value='';return}
   const reader=new FileReader();
   reader.onload=ev=>{
     const dataUrl=ev.target.result;
+    if(!SAN_IMG.test(dataUrl)){alert('Marca de agua: la imagen no es válida (usa PNG, JPG o WEBP).');e.target.value='';return}
     const img=new Image();
+    img.onerror=()=>{alert('Marca de agua: no se pudo leer la imagen.');e.target.value=''};
     img.onload=()=>{
       state.invoiceConfig.watermark=dataUrl;
       state.invoiceConfig.watermarkW=img.naturalWidth;
@@ -1025,6 +1040,7 @@ async function driveLoadData(){
     const res=await gapi.client.drive.files.get({fileId:driveFileId,alt:'media'});
     let data=res.result;
     if(typeof data==='string')data=JSON.parse(data);
+    data=sanitizeState(data);if(!data)throw new Error('Formato de datos inválido');
     // Protección: nunca pisar datos locales más recientes con una copia vieja de Drive
     const hasLocal=['inventory','clients','orders','payments'].some(k=>(state[k]||[]).length);
     const fmt=t=>t?new Date(t).toLocaleString('es-CO'):'fecha desconocida';
@@ -1077,28 +1093,121 @@ async function driveSaveData(retried){
   }
 }
 /* ===== Respaldo manual JSON ===== */
-function exportBackup(){
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='Respaldo_Gestor_Ventas_'+today()+'.json';document.body.appendChild(a);a.click();a.remove();
+/* ===== Seguridad: validación de archivos y datos externos, respaldo cifrado ===== */
+function checkFile(file,{maxMB,exts,label}){
+  if(file.size>maxMB*1048576){alert(`${label}: el archivo pesa más de ${maxMB} MB.`);return false}
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
+  if(exts&&!exts.includes(ext)){alert(`${label}: tipo de archivo no permitido (.${ext}). Permitidos: ${exts.map(e=>'.'+e).join(', ')}.`);return false}
+  return true;
+}
+const SAN_BAD_KEYS=new Set(['__proto__','constructor','prototype']);
+const SAN_IMG=/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+\/=]+$/;
+function sanObj(o,nums,nested){
+  if(!o||typeof o!=='object'||Array.isArray(o))return null;
+  const out={};
+  Object.keys(o).forEach(k=>{
+    if(SAN_BAD_KEYS.has(k))return;
+    const v=o[k];
+    if(nested&&nested[k]){out[k]=Array.isArray(v)?v.map(x=>sanObj(x,nested[k])).filter(Boolean):[];return}
+    if(nums.includes(k)){out[k]=Number(v)||0;return}
+    if(typeof v==='string')out[k]=v.slice(0,(k==='logo'||k==='watermark')?8000000:5000);
+    else if(typeof v==='number'||typeof v==='boolean')out[k]=v; // objetos anidados desconocidos se descartan
+  });
+  return out;
+}
+// Limpia datos que vienen de fuera (respaldo importado o archivo de Drive): tipos correctos, sin claves peligrosas ni objetos inesperados
+function sanitizeState(d){
+  if(!d||typeof d!=='object'||Array.isArray(d))return null;
+  const arr=(v,nums,nested)=>(Array.isArray(v)?v:[]).map(x=>sanObj(x,nums,nested)).filter(Boolean);
+  const out={
+    inventory:arr(d.inventory,['stock','sold','costo','envio','precio','minimo']).filter(p=>p.producto),
+    clients:arr(d.clients,[]).filter(c=>c.nombre),
+    orders:arr(d.orders,[],{lineas:['cantidad','precio']}).filter(o=>o.id),
+    payments:arr(d.payments,['valor']),
+    kits:arr(d.kits,['precioVenta'],{componentes:['cantidad']}),
+    categories:(Array.isArray(d.categories)?d.categories:[]).map(c=>String(c==null?'':c).slice(0,80).toUpperCase()).filter(Boolean),
+    invoiceConfig:sanObj(d.invoiceConfig||{},['watermarkW','watermarkH'])||{},
+    savedAt:Number(d.savedAt)||0
+  };
+  ['logo','watermark'].forEach(k=>{if(out.invoiceConfig[k]&&!SAN_IMG.test(out.invoiceConfig[k]))out.invoiceConfig[k]=''});
+  if(d.taxConfig&&typeof d.taxConfig==='object'){
+    const g={};if(d.taxConfig.gastos&&typeof d.taxConfig.gastos==='object')Object.keys(d.taxConfig.gastos).forEach(k=>{if(/^\d{4}$/.test(k))g[k]=Number(d.taxConfig.gastos[k])||0});
+    out.taxConfig={uvt:Number(d.taxConfig.uvt)||0,gastos:g};
+  }
+  return out;
+}
+const b64=u8=>{let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)};
+const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function cryptoKey(pass,salt,iter){
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptBackup(obj,pass){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),iter=250000;
+  const key=await cryptoKey(pass,salt,iter);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(obj))));
+  return {formato:'gestor-respaldo-cifrado',v:1,kdf:'PBKDF2-SHA256',iter,salt:b64(salt),iv:b64(iv),datos:b64(ct)};
+}
+async function decryptBackup(env,pass){
+  const key=await cryptoKey(pass,unb64(env.salt),Number(env.iter)||250000);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.iv)},key,unb64(env.datos));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function downloadJson(text,name){
+  const blob=new Blob([text],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function exportBackup(){$('expPass1').value='';$('expPass2').value='';$('exportModal').classList.add('open')}
+function closeExportModal(){$('exportModal').classList.remove('open');$('expPass1').value='';$('expPass2').value=''}
+async function doExportBackup(){
+  const p1=$('expPass1').value,p2=$('expPass2').value;
+  if(!p1&&!p2){
+    if(!confirm('El respaldo se descargará SIN cifrar: cualquiera que tenga el archivo verá nombres, teléfonos, direcciones y ventas de tus clientes. ¿Continuar sin contraseña?'))return;
+    downloadJson(JSON.stringify(state,null,2),'Respaldo_Gestor_Ventas_'+today()+'.json');closeExportModal();return;
+  }
+  if(p1.length<8){alert('La contraseña debe tener al menos 8 caracteres.');return}
+  if(p1!==p2){alert('Las contraseñas no coinciden.');return}
+  if(!(window.crypto&&crypto.subtle)){alert('Tu navegador no permite cifrar en esta página (requiere HTTPS).');return}
+  try{
+    const env=await encryptBackup(state,p1);
+    downloadJson(JSON.stringify(env),'Respaldo_CIFRADO_Gestor_Ventas_'+today()+'.json');
+    closeExportModal();
+    alert('Respaldo cifrado descargado. Guarda la contraseña: sin ella no se puede recuperar.');
+  }catch(e){console.error(e);alert('No se pudo cifrar el respaldo.')}
+}
+let pendingEncrypted=null;
+function closeImportPass(){$('importPassModal').classList.remove('open');$('impPass').value='';pendingEncrypted=null}
+async function doImportDecrypt(){
+  if(!pendingEncrypted)return;
+  try{
+    const d=await decryptBackup(pendingEncrypted,$('impPass').value);
+    closeImportPass();restoreBackupData(d);
+  }catch(e){alert('Contraseña incorrecta o archivo dañado.')}
 }
 function importBackup(input){
   const f=input.files&&input.files[0];input.value='';if(!f)return;
+  if(!checkFile(f,{maxMB:15,exts:['json'],label:'Respaldo'}))return;
   const r=new FileReader();
   r.onload=()=>{
     let d;try{d=JSON.parse(r.result)}catch(e){alert('El archivo no es un respaldo válido.');return}
-    if(!d||typeof d!=='object'||!Array.isArray(d.orders)||!Array.isArray(d.inventory)||!Array.isArray(d.clients)){alert('El archivo no parece un respaldo de este gestor.');return}
-    if(!confirm(`Se reemplazarán TODOS los datos actuales por el respaldo (${d.orders.length} pedidos, ${d.clients.length} clientes, ${d.inventory.length} productos, ${(d.payments||[]).length} abonos). Antes se guarda una copia local de lo actual. ¿Continuar?`))return;
-    try{localStorage.setItem(KEY+'_backup',JSON.stringify({guardadoEn:Date.now(),datos:state}))}catch(e){}
-    d.payments=d.payments||[];d.kits=d.kits||[];
-    if(!d.invoiceConfig)d.invoiceConfig=state.invoiceConfig;
-    if(!d.categories||!d.categories.length)d.categories=[...DEFAULT_CATEGORIES];
-    d.categories=d.categories.map(c=>c.toUpperCase());
-    state=d;persist();refresh();loadInvoiceConfig();
-    alert('Respaldo restaurado.');
+    if(d&&d.formato==='gestor-respaldo-cifrado'){
+      if(!d.salt||!d.iv||!d.datos){alert('El respaldo cifrado está incompleto.');return}
+      pendingEncrypted=d;$('impPass').value='';$('importPassModal').classList.add('open');return;
+    }
+    restoreBackupData(d);
   };
   r.readAsText(f);
+}
+function restoreBackupData(raw){
+  const d=sanitizeState(raw);
+  if(!d||!Array.isArray(raw.orders)||!Array.isArray(raw.inventory)||!Array.isArray(raw.clients)){alert('El archivo no parece un respaldo de este gestor.');return}
+  if(!confirm(`Se reemplazarán TODOS los datos actuales por el respaldo (${d.orders.length} pedidos, ${d.clients.length} clientes, ${d.inventory.length} productos, ${d.payments.length} abonos). Antes se guarda una copia local de lo actual. ¿Continuar?`))return;
+  try{localStorage.setItem(KEY+'_backup',JSON.stringify({guardadoEn:Date.now(),datos:state}))}catch(e){}
+  if(!Object.keys(d.invoiceConfig).length)d.invoiceConfig=state.invoiceConfig;
+  if(!d.categories.length)d.categories=[...DEFAULT_CATEGORIES];
+  state=d;persist();refresh();loadInvoiceConfig();
+  alert('Respaldo restaurado.');
 }
 function downloadExcel(filename,sheetName,rows){
   if(!window.XLSX){alert('La librería de Excel aún está cargando, intenta de nuevo en unos segundos.');return}
@@ -1330,6 +1439,7 @@ function downloadInventoryTemplate(){
 function handleInventoryFile(event){
   const input=event.target,file=input.files&&input.files[0];input.value='';
   if(!file)return;
+  if(!checkFile(file,{maxMB:5,exts:['xlsx','xls','csv','txt'],label:'Inventario'}))return;
   if(!window.XLSX){alert('La librería de Excel aún está cargando, intenta de nuevo en unos segundos.');return}
   const isCsv=/\.(csv|txt)$/i.test(file.name);
   const r=new FileReader();
@@ -1346,6 +1456,7 @@ function handleInventoryFile(event){
 }
 function buildImportPreview(grid,fileName){
   if(!grid.length){alert('El archivo está vacío.');return}
+  if(grid.length>5001){alert('El archivo tiene más de 5.000 filas. Divídelo en partes más pequeñas.');return}
   // fila de encabezados: la primera que contenga "producto"
   let hi=grid.findIndex(row=>row.some(c=>impNorm(c)==='producto'||impNorm(c)==='nombre'));
   if(hi<0){alert('No encontré la columna "Producto". La primera fila debe tener los encabezados: '+IMPORT_COLS.join(', ')+'.');return}
@@ -2313,6 +2424,25 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
       <div class="field"><label>Precio de venta (el del sistema; solo cambia si lo editas)</label><input id="impAssignPrice" type="number" min="0"></div>
     </div>
     <div class="modal-actions"><button class="btn" onclick="cancelImportAssign()">Cancelar</button><button class="btn primary" onclick="confirmImportAssign()">Asignar</button></div>
+  </div>
+</div>
+<div id="exportModal" class="modal-backdrop" onclick="if(event.target===this)closeExportModal()">
+  <div class="modal" style="width:min(460px,calc(100% - 30px))">
+    <h2>Exportar respaldo</h2>
+    <div class="note">Recomendado: protégelo con una contraseña (se cifra con AES-256 en tu dispositivo). Si la olvidas, el respaldo no se puede recuperar. Déjalo vacío para exportar sin cifrar.</div>
+    <div class="formgrid" style="grid-template-columns:1fr;margin-top:10px">
+      <div class="field"><label>Contraseña (mínimo 8 caracteres)</label><input id="expPass1" type="password" autocomplete="new-password"></div>
+      <div class="field"><label>Repetir contraseña</label><input id="expPass2" type="password" autocomplete="new-password"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeExportModal()">Cancelar</button><button class="btn primary" onclick="doExportBackup()">Descargar respaldo</button></div>
+  </div>
+</div>
+<div id="importPassModal" class="modal-backdrop" onclick="if(event.target===this)closeImportPass()">
+  <div class="modal" style="width:min(420px,calc(100% - 30px))">
+    <h2>Respaldo cifrado</h2>
+    <div class="note">Escribe la contraseña con la que se cifró este respaldo.</div>
+    <div class="formgrid" style="grid-template-columns:1fr;margin-top:10px"><div class="field"><label>Contraseña</label><input id="impPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doImportDecrypt()"></div></div>
+    <div class="modal-actions"><button class="btn" onclick="closeImportPass()">Cancelar</button><button class="btn primary" onclick="doImportDecrypt()">Descifrar y restaurar</button></div>
   </div>
 </div>
 <div id="scannerModal" class="modal-backdrop" style="z-index:200">
