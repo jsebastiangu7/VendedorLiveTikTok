@@ -13,7 +13,7 @@
   if(window.top!==window.self){document.documentElement.style.display='none';window.top.location=window.self.location}
 }catch(e){}})();
 </script>
-<title>Gestor de Ventas — LIVE TikTok</title>
+<title>Administrador Emprendedor</title>
 <style>
 :root{--bg:#ffffff;--card:#ffffff;--ink:#161616;--muted:#5c6a5f;--primary:#3f7d4a;--primary2:#2f5f38;--primary-light:#e9f4ea;--ok:#2f7d4a;--warn:#a9660a;--danger:#c0392b;--border:#e3e7e3;--field-bg:#ffffff;--field-border:#ccd4cc;--thead-bg:#f7faf7;--row-border:#eef1ee}
 :root[data-theme="dark"]{--bg:#14171a;--card:#1c2020;--ink:#f2f4f2;--muted:#9aa79d;--primary:#4fae63;--primary2:#5fc177;--primary-light:#1f2b21;--ok:#4fae63;--warn:#e2a552;--danger:#ef8a7d;--border:#2b302b;--field-bg:#1c2020;--field-border:#33392f;--thead-bg:#20261f;--row-border:#262b26}
@@ -46,6 +46,7 @@ form{display:grid;gap:14px}.formgrid{display:grid;grid-template-columns:repeat(4
 .btn{border:1px solid var(--field-border);background:var(--field-bg);border-radius:8px;padding:9px 12px;cursor:pointer;font-weight:700;color:var(--ink)}
 .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.primary:hover{background:var(--primary2)}
 .btn.danger{color:#fff;background:var(--danger);border-color:var(--danger)}.btn.danger:hover{background:#a5301f}
+th .sortarrows{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:4px;line-height:1}th .sortarrows button{border:0;background:transparent;padding:1px 4px;font-size:10px;line-height:10px;cursor:pointer;color:var(--muted);opacity:.55}th .sortarrows button:hover{opacity:1}th .sortarrows button.on{color:var(--primary);opacity:1}
 table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);color:var(--ink)}.tablewrap{overflow:auto;max-height:65vh;border:1px solid var(--border);border-radius:10px}th,td{padding:9px 10px;border-bottom:1px solid var(--row-border);text-align:left;white-space:nowrap}th{background:var(--thead-bg);position:sticky;top:0;z-index:1;font-size:11px;text-transform:uppercase;color:var(--muted)}td.num{text-align:right}
 .pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800;background:var(--thead-bg);color:var(--muted)}.pill.ok{background:var(--primary-light);color:var(--ok)}.pill.warn{background:#fdf1de;color:var(--warn)}.pill.danger{background:#fbe4e0;color:var(--danger)}
 :root[data-theme="dark"] .pill.warn{background:#3a2a10}:root[data-theme="dark"] .pill.danger{background:#3a1512}
@@ -83,7 +84,7 @@ td .ss-wrap,.field .ss-wrap{width:100%}
 <body>
 <header>
 <div class="hdr-top">
-  <div class="brand">Gestor <span>LIVE TikTok</span></div>
+  <div class="brand">Administrador <span>Emprendedor</span></div>
   <button class="btn" id="driveConnectBtn" onclick="driveConnect()">Conectar Google Drive</button>
   <span id="driveStatus" class="note">Sin conectar</span>
   <span id="autoSaveStatus" class="note"></span>
@@ -179,16 +180,16 @@ td .ss-wrap,.field .ss-wrap{width:100%}
 </section>
 
 <section id="venta" class="view">
-  <h1>Venta LIVE</h1><div class="subtitle">Captura el pedido mientras haces el LIVE. El botón Guardar pedido registra todo en un solo paso.</div>
+  <h1>Ventas</h1><div class="subtitle">Captura el pedido mientras haces el LIVE. El botón Guardar pedido registra todo en un solo paso.</div>
   <div class="panel">
     <div class="formgrid">
       <div class="field"><label>N.º de pedido</label><input id="orderId" readonly placeholder="TT-00001"><div class="note">Generado automáticamente</div></div>
       <div class="field"><label>Cliente</label><select id="orderClient"></select></div>
-      <div class="field"><label>Fecha</label><input id="orderDate" type="date"></div>
+      <div class="field"><label>Fecha de la factura</label><input id="orderDate" type="date"><div class="note">Solo define la fecha de la factura; cada producto tiene su propia fecha.</div></div>
       <div class="field"><label>Estado</label><select id="orderStatus"><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select></div>
     </div>
     <div class="quick" style="margin:12px 0"><button class="btn" onclick="newClient()">+ Cliente</button><button class="btn" onclick="addLine()">+ Producto</button><button class="btn" onclick="scanForSale()">📷 Escanear producto</button><button class="btn" onclick="clearOrder()">Limpiar</button></div>
-    <div class="tablewrap"><table class="order-lines"><thead><tr><th style="min-width:260px">Producto</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th></tr></thead><tbody id="lineBody"></tbody></table></div>
+    <div class="tablewrap"><table class="order-lines"><thead><tr><th style="min-width:260px">Producto</th><th>Fecha</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th></tr></thead><tbody id="lineBody"></tbody></table></div>
     <div class="formgrid" style="margin-top:14px">
       <div class="field"><label>Abono recibido</label><input id="initialPayment" type="number" min="0" value="0"></div>
       <div class="field"><label>Medio de pago</label><select id="initialMethod"><option>Nequi</option><option>Daviplata</option><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
@@ -214,19 +215,19 @@ td .ss-wrap,.field .ss-wrap{width:100%}
 <section id="pedidos" class="view">
   <h1>Pedidos</h1><div class="subtitle">Busca, edita pedidos y registra nuevos abonos.</div>
   <div class="toolbar"><input id="orderSearch" placeholder="Buscar pedido o cliente" oninput="renderOrders()"><select id="orderFilter" onchange="renderOrders()"><option value="">Todos</option><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select><button class="btn" onclick="exportOrdersExcel()">⬇ Descargar Excel</button></div>
-  <div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+  <div class="tablewrap"><table><thead id="ordersHead"></thead><tbody id="ordersBody"></tbody></table></div>
 </section>
 
 <section id="inventario" class="view">
   <h1>Inventario</h1><div class="subtitle">El stock vendido se calcula automáticamente a partir de los pedidos guardados.</div>
-  <div class="toolbar"><button class="btn primary" onclick="openProductModal()">+ Agregar producto / stock</button><button class="btn" onclick="openKitModal()">🎁 Kits</button><button class="btn" onclick="$('inventoryFile').click()">📥 Cargar inventario (Excel/CSV)</button><button class="btn" onclick="downloadInventoryTemplate()">Plantilla Excel</button><button class="btn" onclick="scanInventory()">📷 Escanear código</button><input id="inventoryFile" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="handleInventoryFile(event)"><input id="invSearch" placeholder="Buscar producto o código" oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">Todos</option><option>EN STOCK</option><option>REPOSICIÓN</option><option>AGOTADO</option></select><button class="btn" onclick="exportInventoryExcel()">⬇ Descargar Excel</button></div>
-  <div class="tablewrap"><table><thead><tr><th>Producto</th><th>Código</th><th>Categoría</th><th>Costo</th><th>Envío</th><th>Stock inicial</th><th>Vendido</th><th>Stock actual</th><th>Estado</th><th>Precio venta</th><th>Margen %</th><th>Fecha compra</th><th>Días</th><th>Acciones</th></tr></thead><tbody id="invBody"></tbody></table></div>
+  <div class="toolbar"><button class="btn primary" id="btnAddProduct" onclick="openProductModal()">+ Agregar producto / stock</button><button class="btn" id="btnKits" onclick="openKitModal()">🎁 Kits</button><button class="btn" onclick="$('inventoryFile').click()">📥 Cargar inventario (Excel/CSV)</button><button class="btn" onclick="downloadInventoryTemplate()">Plantilla Excel</button><button class="btn" onclick="scanInventory()">📷 Escanear código</button><input id="inventoryFile" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="handleInventoryFile(event)"><input id="invSearch" placeholder="Buscar producto o código" oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">Todos</option><option>EN STOCK</option><option>REPOSICIÓN</option><option>AGOTADO</option></select><button class="btn" onclick="exportInventoryExcel()">⬇ Descargar Excel</button></div>
+  <div class="tablewrap"><table><thead id="invHead"></thead><tbody id="invBody"></tbody></table></div>
 </section>
 
 <section id="clientes" class="view">
   <h1>Clientes</h1><div class="subtitle">Base de clientes editable.</div>
   <div class="toolbar"><input id="clientSearch" placeholder="Buscar cliente" oninput="renderClients()"><button class="btn primary" onclick="newClient()">+ Nuevo cliente</button><button class="btn" onclick="exportClientsExcel()">⬇ Descargar Excel</button></div>
-  <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>WhatsApp</th><th>Ciudad</th><th>Dirección</th><th>Estado</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+  <div class="tablewrap"><table><thead id="clientsHead"></thead><tbody id="clientsBody"></tbody></table></div>
 </section>
 
 <section id="abonos" class="view">
@@ -244,7 +245,7 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     <div class="quick" style="margin-top:12px"><button class="btn primary" onclick="addPayment()">Registrar abono</button><button class="btn" onclick="openClientPayModal()">Abonar a varios pedidos del cliente</button></div>
   </div>
   <div class="toolbar" style="margin-top:14px;margin-bottom:0"><button class="btn" onclick="exportPaymentsExcel()">⬇ Descargar Excel</button></div>
-  <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Fecha</th><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Medio</th><th>Referencia</th><th>Nota</th><th>Acciones</th></tr></thead><tbody id="paymentsBody"></tbody></table></div>
+  <div class="tablewrap" style="margin-top:10px"><table><thead id="paymentsHead"></thead><tbody id="paymentsBody"></tbody></table></div>
 </section>
 
 <section id="facturacion" class="view">
@@ -267,6 +268,15 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     <div class="quick" style="margin-top:14px"><button class="btn primary" onclick="saveInvoiceConfig()">Guardar datos de factura</button><button class="btn danger" onclick="clearInvoiceLogo()">Quitar logo</button><button class="btn danger" onclick="clearWatermark()">Quitar marca de agua</button></div>
     <div class="note" style="margin-top:10px">La marca de agua se ajusta automáticamente al tamaño y márgenes de la hoja, conservando su proporción original, y se aplica con transparencia reducida para no interferir con la lectura de la factura.</div>
     <div class="note" style="margin-top:6px">Nota técnica: Arial (sustituida por Inter), Nunito, Montserrat, Perfect Lemonade, Sweetbliss Personal Use y Shortcake Strawberry están incrustadas de verdad en el PDF a partir de los archivos que proporcionaste y se ven correctamente con tildes y ñ. "Mochibop" también está incrustada, pero muestra las tildes y la ñ sin su acento visual (limitación de diseño de esa fuente demo). Se retiraron "Comic Sans", "Century Gothic" y "Bubblegum Bliss" de la lista por no tener un archivo utilizable (sin archivo disponible, archivo de prueba con los números inutilizados, o sin soporte de tildes/ñ que cortaba el texto).</div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>Nombres de los botones de Inventario</h2>
+    <div class="note" style="margin-bottom:10px">Cambia cómo se llaman los botones "+ Agregar producto / stock" y "Kits" en la pestaña Inventario.</div>
+    <div class="formgrid">
+      <div class="field"><label>Botón 1 (original: + Agregar producto / stock)</label><input id="lblProducto" maxlength="40"></div>
+      <div class="field"><label>Botón 2 (original: Kits)</label><input id="lblKits" maxlength="40"></div>
+    </div>
+    <div class="quick" style="margin-top:12px"><button class="btn primary" onclick="saveUiLabels()">Guardar nombres</button><button class="btn" onclick="resetUiLabels()">Restaurar nombres originales</button></div>
   </div>
 </section>
 <section id="legal" class="view">
@@ -318,10 +328,11 @@ function saveAll(){
   alert(driveAccessToken?'Datos guardados localmente y sincronizados con Google Drive.':'Datos guardados en este navegador. Conecta Google Drive para respaldo en la nube.');
 }
 function refresh(){
+  applyUiLabels();
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
 }
 function navInit(){
-  const items=[['dashboard','Dashboard'],['venta','Venta LIVE'],['ventasProducto','Ventas por producto'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación'],['legal','Legal']];
+  const items=[['dashboard','Dashboard'],['venta','Ventas'],['ventasProducto','Ventas por producto'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación'],['legal','Legal']];
   $('nav').innerHTML=items.map(([id,t],i)=>`<button class="${i===0?'active':''}" data-view="${id}">${t}</button>`).join('');
   document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
   $('navMobile').innerHTML=items.map(([id,t])=>`<option value="${id}">${t}</option>`).join('');
@@ -440,9 +451,44 @@ function deleteOrder(id){
   alert('Pedido eliminado.');
 }
 function pill(s){let c=s==='Pagado'||s==='Entregado'||s==='EN STOCK'?'ok':s==='Cancelado'||s==='AGOTADO'?'danger':'warn';return `<span class="pill ${c}">${esc(s)}</span>`}
+/* ===== Orden de tablas (flechas ▲▼ junto a cada título) ===== */
+const SORT_DEFS={
+  orders:{cols:[['Pedido','id','t'],['Fecha','fecha','t'],['Cliente','cliente','t'],['Total','total','n'],['Abonado','abonado','n'],['Saldo','saldo','n'],['Estado','estado','t'],['Acciones']],def:['id','asc'],
+    get:(o,k)=>k==='total'?orderTotal(o):k==='abonado'?paid(o):k==='saldo'?Math.max(0,orderTotal(o)-paid(o)):o[k],tie:'id'},
+  clients:{cols:[['Cliente','nombre','t'],['WhatsApp','telefono','t'],['Ciudad','tiktok','t'],['Dirección','direccion','t'],['Estado','estado','t'],['']],def:['nombre','asc'],get:(c,k)=>c[k],tie:'nombre'},
+  inventory:{cols:[['Producto','producto','t'],['Código','codigo','t'],['Categoría','categoria','t'],['Costo','costo','n'],['Envío','envio','n'],['Stock inicial','stock','n'],['Vendido','sold','n'],['Stock actual','current','n'],['Estado','status','t'],['Precio venta','precio','n'],['Margen %','margen','n'],['Fecha compra','fechaCompra','t'],['Días','dias','n'],['Acciones']],def:['producto','asc'],
+    get:(p,k)=>k==='margen'?margenPct(p):k==='dias'?(daysSince(p.fechaCompra)):p[k],tie:'producto'},
+  payments:{cols:[['Fecha','fecha','t'],['Pedido','pedido','t'],['Cliente','cliente','t'],['Valor','valor','n'],['Medio','medio','t'],['Referencia','referencia','t'],['Nota','nota','t'],['Acciones']],def:['pedido','asc'],
+    get:(p,k)=>k==='nota'?payNote(p):p[k],tie:'fecha'}
+};
+let sortState=(()=>{try{return JSON.parse(localStorage.getItem('uiSort')||'{}')||{}}catch(e){return {}}})();
+function getSort(t){const st=sortState[t],d=SORT_DEFS[t];return st&&d.cols.some(c=>c[1]===st[0])&&(st[1]==='asc'||st[1]==='desc')?st:d.def}
+function setSort(t,key,dir){sortState[t]=[key,dir];try{localStorage.setItem('uiSort',JSON.stringify(sortState))}catch(e){}refresh()}
+function sortHeadHtml(t){
+  const d=SORT_DEFS[t],[k0,dir0]=getSort(t);
+  return '<tr>'+d.cols.map(([label,key])=>{
+    if(!key)return `<th>${label}</th>`;
+    return `<th>${label}<span class="sortarrows"><button type="button" class="${k0===key&&dir0==='asc'?'on':''}" title="Ascendente" aria-label="${label} ascendente" onclick="setSort('${t}','${key}','asc')">▲</button><button type="button" class="${k0===key&&dir0==='desc'?'on':''}" title="Descendente" aria-label="${label} descendente" onclick="setSort('${t}','${key}','desc')">▼</button></span></th>`;
+  }).join('')+'</tr>';
+}
+function sortRows(t,arr){
+  const d=SORT_DEFS[t],[key,dir]=getSort(t),col=d.cols.find(c=>c[1]===key),num=col&&col[2]==='n',m=dir==='desc'?-1:1;
+  const cmpT=(a,b)=>String(a==null?'':a).localeCompare(String(b==null?'':b),'es',{numeric:true,sensitivity:'base'});
+  return [...arr].sort((a,b)=>{
+    const x=d.get(a,key),y=d.get(b,key);
+    let r;
+    if(num){const nx=x==null||x===''?null:Number(x),ny=y==null||y===''?null:Number(y);
+      if(nx===null&&ny===null)r=0;else if(nx===null)return 1;else if(ny===null)return -1;else r=nx-ny}
+    else{
+      const ex=x==null||x==='',ey=y==null||y==='';
+      if(ex&&ey)r=0;else if(ex)return 1;else if(ey)return -1;else r=cmpT(x,y)}
+    return r*m||cmpT(d.get(a,d.tie),d.get(b,d.tie));
+  });
+}
 function renderOrders(){
   const q=($('orderSearch')?.value||'').toLowerCase(), f=$('orderFilter')?.value||'';
-  const arr=state.orders.filter(o=>(!q||o.id.toLowerCase().includes(q)||o.cliente.toLowerCase().includes(q))&&(!f||o.estado===f)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const arr=state.orders.filter(o=>(!q||o.id.toLowerCase().includes(q)||o.cliente.toLowerCase().includes(q))&&(!f||o.estado===f));
+  $('ordersHead').innerHTML=sortHeadHtml('orders');arr.splice(0,arr.length,...sortRows('orders',arr));
   $('ordersBody').innerHTML=arr.length?arr.map(o=>{let t=orderTotal(o),p=paid(o);return `<tr><td>${esc(o.id)}</td><td>${esc(o.fecha)}</td><td>${esc(o.cliente)}</td><td>${money(t)}</td><td>${money(p)}</td><td>${money(Math.max(0,t-p))}</td><td>${pill(o.estado)}</td><td class="action-row"><button class="btn" onclick="editOrder('${js(o.id)}')">Editar</button><button class="btn" onclick="choosePayment('${js(o.id)}')">Abono</button><button class="btn primary" onclick="generateInvoice('${js(o.id)}')">Generar Factura</button><button class="btn danger" onclick="deleteOrder('${js(o.id)}')">Eliminar</button></td></tr>`}).join(''):'<tr><td colspan="8" class="empty">No hay pedidos.</td></tr>';
 }
 // Escapa para usar dentro de onclick="fn('...')": primero JS (\\ y '), luego HTML (&, <, >, ", ') para que un nombre con comillas no pueda inyectar atributos/código
@@ -450,6 +496,7 @@ function js(s){return esc(String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").re
 function renderInventory(){
   const q=($('invSearch')?.value||'').toLowerCase(), f=$('invFilter')?.value||'';
   const arr=state.inventory.map(p=>({...p,...stockInfo(p)})).filter(p=>(!q||p.producto.toLowerCase().includes(q)||String(p.codigo||'').toLowerCase().includes(q))&&(!f||p.status===f));
+  $('invHead').innerHTML=sortHeadHtml('inventory');arr.splice(0,arr.length,...sortRows('inventory',arr));
   $('invBody').innerHTML=arr.length?arr.map(p=>{
     const days=daysSince(p.fechaCompra);
     const diasTxt=days===null?'—':(days+' d'+(days>90?' ⚠':''));
@@ -466,6 +513,7 @@ function deleteProduct(name){
 function renderClients(){
   const q=($('clientSearch')?.value||'').toLowerCase();
   const arr=state.clients.filter(c=>!q||[c.nombre,c.telefono,c.tiktok].join(' ').toLowerCase().includes(q));
+  $('clientsHead').innerHTML=sortHeadHtml('clients');arr.splice(0,arr.length,...sortRows('clients',arr));
   $('clientsBody').innerHTML=arr.map((c,i)=>`<tr><td>${esc(c.nombre)}</td><td>${esc(c.telefono)}</td><td>${esc(c.tiktok)}</td><td>${esc(c.direccion)}</td><td>${pill(c.estado)}</td><td><button class="btn" onclick="editClient('${js(c.nombre)}')">Editar</button></td></tr>`).join('');
 }
 // Nota de un abono; los abonos anteriores a este campo heredan las notas del pedido (solo el primero)
@@ -477,19 +525,19 @@ function payNote(p){
 }
 function renderPayments(){
   state.payments.forEach(p=>{if(!p.id)p.id=uid()});
-  const arr=[...state.payments].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  $('paymentsHead').innerHTML=sortHeadHtml('payments');
+  const arr=sortRows('payments',state.payments);
   $('paymentsBody').innerHTML=arr.length?arr.map(p=>`<tr><td>${esc(p.fecha)}</td><td>${esc(p.pedido)}</td><td>${esc(p.cliente)}</td><td>${money(p.valor)}</td><td>${esc(p.medio)}</td><td>${esc(p.referencia)}</td><td>${esc(payNote(p))}</td><td class="action-row"><button class="btn" onclick="editPayment('${js(p.id)}')">Editar</button><button class="btn danger" onclick="deletePayment('${js(p.id)}')">Eliminar</button></td></tr>`).join(''):'<tr><td colspan="8" class="empty">No hay abonos registrados.</td></tr>';
 }
 function addLine(product='',qty=1,fecha=''){
   const tr=document.createElement('tr');
-  if(fecha)tr.dataset.fecha=fecha; // fecha en que se registró este producto en el pedido
   const productsSorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
   const opts=productsSorted.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)} — ${money(p.precio)}</option>`).join('');
   const kitsAvailable=(state.kits||[]).filter(k=>kitStockInfo(k).current>0||k.nombre===product);
   const kitsSorted=kitsAvailable.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   const kitOpts=kitsSorted.map(k=>`<option value="${esc(k.nombre)}">🎁 ${esc(k.nombre)} — ${money(k.precioVenta)}</option>`).join('');
   const groups=`<option value="">Seleccionar…</option><optgroup label="Productos">${opts}</optgroup>`+(kitOpts?`<optgroup label="Kits">${kitOpts}</optgroup>`:'');
-  tr.innerHTML=`<td><select class="lineProduct" onchange="lineChanged(this)">${groups}</select></td><td style="width:90px"><input class="lineQty" type="number" min="1" value="${qty}" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="linePrice" type="number" min="0" value="0" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="lineTotalInput" type="number" min="0" value="0" oninput="totalFieldChanged(this)"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateLiveTotals()">×</button></td>`;
+  tr.innerHTML=`<td><select class="lineProduct" onchange="lineChanged(this)">${groups}</select></td><td style="width:150px"><input class="lineDate" type="date" value="${esc(fecha||today())}" title="Fecha en que se registró este producto"></td><td style="width:90px"><input class="lineQty" type="number" min="1" value="${qty}" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="linePrice" type="number" min="0" value="0" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="lineTotalInput" type="number" min="0" value="0" oninput="totalFieldChanged(this)"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateLiveTotals()">×</button></td>`;
   $('lineBody').appendChild(tr);
   const sel=tr.querySelector('.lineProduct');
   if(product){sel.value=product;lineChanged(sel)}
@@ -533,14 +581,14 @@ function editOrder(id){
 function saveOrder(){
   const id=$('orderId').value.trim()||nextOrderId(),cliente=$('orderClient').value,fecha=$('orderDate').value||today();
   if(!id||!cliente){alert('Indica el número de pedido y el cliente.');return}
-  const lineas=[...document.querySelectorAll('#lineBody tr')].map(tr=>({producto:tr.querySelector('.lineProduct').value,cantidad:Number(tr.querySelector('.lineQty').value)||0,precio:Number(tr.querySelector('.linePrice').value)||0,fecha:tr.dataset.fecha||''})).filter(l=>l.producto&&l.cantidad>0);
+  const lineas=[...document.querySelectorAll('#lineBody tr')].map(tr=>({producto:tr.querySelector('.lineProduct').value,cantidad:Number(tr.querySelector('.lineQty').value)||0,precio:Number(tr.querySelector('.linePrice').value)||0,fecha:tr.querySelector('.lineDate').value||''})).filter(l=>l.producto&&l.cantidad>0);
   if(!lineas.length){alert('Agrega al menos un producto.');return}
   const old=state.orders.find(o=>o.id===id);
-  lineas.forEach(l=>{if(!l.fecha)l.fecha=old?today():fecha}); // líneas nuevas: hoy si el pedido ya existía; si es pedido nuevo, la fecha del pedido
+  lineas.forEach(l=>{if(!l.fecha)l.fecha=today()}); // cada producto conserva su propia fecha; la fecha del encabezado es solo la de la factura
   const o={id,cliente,fecha,estado:$('orderStatus').value,notas:$('orderNotes').value,lineas};
   if(old){Object.assign(old,o)}else{state.orders.push(o)}
   const initial=Number($('initialPayment').value)||0;
-  if(initial>0)state.payments.push({id:uid(),pedido:id,fecha,cliente,valor:initial,medio:$('initialMethod').value,referencia:$('initialRef').value,nota:$('orderNotes').value.trim()});
+  if(initial>0)state.payments.push({id:uid(),pedido:id,fecha:today(),cliente,valor:initial,medio:$('initialMethod').value,referencia:$('initialRef').value,nota:$('orderNotes').value.trim()});
   persist();alert(old?'Pedido actualizado.':'Pedido guardado.');clearOrder();refresh();showView('pedidos');
 }
 function choosePayment(id){showView('abonos');$('payOrder').value=id}
@@ -1129,6 +1177,8 @@ function sanitizeState(d){
     invoiceConfig:sanObj(d.invoiceConfig||{},['watermarkW','watermarkH'])||{},
     savedAt:Number(d.savedAt)||0
   };
+  if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string'&&d.uiLabels[k].trim())out.uiLabels[k]=d.uiLabels[k].trim().slice(0,40)})}
+  if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string')out.uiLabels[k]=d.uiLabels[k].slice(0,40)})}
   ['logo','watermark'].forEach(k=>{if(out.invoiceConfig[k]&&!SAN_IMG.test(out.invoiceConfig[k]))out.invoiceConfig[k]=''});
   if(d.taxConfig&&typeof d.taxConfig==='object'){
     const g={};if(d.taxConfig.gastos&&typeof d.taxConfig.gastos==='object')Object.keys(d.taxConfig.gastos).forEach(k=>{if(/^\d{4}$/.test(k))g[k]=Number(d.taxConfig.gastos[k])||0});
@@ -1164,14 +1214,14 @@ async function doExportBackup(){
   const p1=$('expPass1').value,p2=$('expPass2').value;
   if(!p1&&!p2){
     if(!confirm('El respaldo se descargará SIN cifrar: cualquiera que tenga el archivo verá nombres, teléfonos, direcciones y ventas de tus clientes. ¿Continuar sin contraseña?'))return;
-    downloadJson(JSON.stringify(state,null,2),'Respaldo_Gestor_Ventas_'+today()+'.json');closeExportModal();return;
+    downloadJson(JSON.stringify(state,null,2),'Respaldo_Administrador_Emprendedor_'+today()+'.json');closeExportModal();return;
   }
   if(p1.length<8){alert('La contraseña debe tener al menos 8 caracteres.');return}
   if(p1!==p2){alert('Las contraseñas no coinciden.');return}
   if(!(window.crypto&&crypto.subtle)){alert('Tu navegador no permite cifrar en esta página (requiere HTTPS).');return}
   try{
     const env=await encryptBackup(state,p1);
-    downloadJson(JSON.stringify(env),'Respaldo_CIFRADO_Gestor_Ventas_'+today()+'.json');
+    downloadJson(JSON.stringify(env),'Respaldo_CIFRADO_Administrador_Emprendedor_'+today()+'.json');
     closeExportModal();
     alert('Respaldo cifrado descargado. Guarda la contraseña: sin ella no se puede recuperar.');
   }catch(e){console.error(e);alert('No se pudo cifrar el respaldo.')}
@@ -1201,7 +1251,7 @@ function importBackup(input){
 }
 function restoreBackupData(raw){
   const d=sanitizeState(raw);
-  if(!d||!Array.isArray(raw.orders)||!Array.isArray(raw.inventory)||!Array.isArray(raw.clients)){alert('El archivo no parece un respaldo de este gestor.');return}
+  if(!d||!Array.isArray(raw.orders)||!Array.isArray(raw.inventory)||!Array.isArray(raw.clients)){alert('El archivo no parece un respaldo de esta aplicación.');return}
   if(!confirm(`Se reemplazarán TODOS los datos actuales por el respaldo (${d.orders.length} pedidos, ${d.clients.length} clientes, ${d.inventory.length} productos, ${d.payments.length} abonos). Antes se guarda una copia local de lo actual. ¿Continuar?`))return;
   try{localStorage.setItem(KEY+'_backup',JSON.stringify({guardadoEn:Date.now(),datos:state}))}catch(e){}
   if(!Object.keys(d.invoiceConfig).length)d.invoiceConfig=state.invoiceConfig;
@@ -1802,7 +1852,7 @@ function addScannedProductToOrder(code){
   if(!p)return{text:`Código ${code} no registrado. Vincúlalo desde Inventario > Escanear código.`,error:true};
   const rows=[...document.querySelectorAll('#lineBody tr')];
   let qty=1;
-  const same=rows.find(tr=>tr.querySelector('.lineProduct').value===p.producto&&(!tr.dataset.fecha||tr.dataset.fecha===today()));
+  const same=rows.find(tr=>tr.querySelector('.lineProduct').value===p.producto&&tr.querySelector('.lineDate').value===today());
   if(same){
     const q=same.querySelector('.lineQty');q.value=(Number(q.value)||0)+1;qty=Number(q.value);updateLiveTotals();
   }else{
@@ -1820,7 +1870,7 @@ const LEGAL_DOCS={privacy:{es:`<h2>Política de Privacidad</h2>
 <p class="meta">Última actualización: 20 de octubre de 2026</p>
 
 <h3>1. Quiénes somos y alcance</h3>
-<p><strong>Gestor de Ventas LIVE TikTok</strong> (la «Aplicación») es una herramienta web para gestionar ventas en vivo, inventario, clientes, pedidos, abonos y facturas en PDF. Es operada por <strong>JSGU</strong> (Colombia) («nosotros»). Esta política explica qué información maneja la Aplicación, cómo se usa y qué opciones tienes. Contacto: <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
+<p><strong>Administrador Emprendedor</strong> (la «Aplicación») es una herramienta web para gestionar ventas en vivo, inventario, clientes, pedidos, abonos y facturas en PDF. Es operada por <strong>JSGU</strong> (Colombia) («nosotros»). Esta política explica qué información maneja la Aplicación, cómo se usa y qué opciones tienes. Contacto: <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
 
 <h3>2. Información que maneja la Aplicación</h3>
 <ul>
@@ -1874,7 +1924,7 @@ const LEGAL_DOCS={privacy:{es:`<h2>Política de Privacidad</h2>
 <p class="meta">Last updated: October 20, 2026</p>
 
 <h3>1. Who we are and scope</h3>
-<p><strong>Gestor de Ventas LIVE TikTok</strong> (the “App”) is a web tool for managing live-selling sales, inventory, customers, orders, payments and PDF invoices. It is operated by <strong>JSGU</strong> (Colombia) (“we”). This policy explains what information the App handles, how it is used and the choices you have. Contact: <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
+<p><strong>Administrador Emprendedor</strong> (the “App”) is a web tool for managing live-selling sales, inventory, customers, orders, payments and PDF invoices. It is operated by <strong>JSGU</strong> (Colombia) (“we”). This policy explains what information the App handles, how it is used and the choices you have. Contact: <a href="mailto:jsebastiangu7@gmail.com">jsebastiangu7@gmail.com</a>.</p>
 
 <h3>2. Information the App handles</h3>
 <ul>
@@ -1928,7 +1978,7 @@ const LEGAL_DOCS={privacy:{es:`<h2>Política de Privacidad</h2>
 <p class="meta">Última actualización: 20 de octubre de 2026</p>
 
 <h3>1. Aceptación</h3>
-<p>Al usar <strong>Gestor de Ventas LIVE TikTok</strong> (la «Aplicación»), operada por <strong>JSGU</strong> (Colombia), aceptas estos Términos. Si no estás de acuerdo, no uses la Aplicación.</p>
+<p>Al usar <strong>Administrador Emprendedor</strong> (la «Aplicación»), operada por <strong>JSGU</strong> (Colombia), aceptas estos Términos. Si no estás de acuerdo, no uses la Aplicación.</p>
 
 <h3>2. Descripción del servicio</h3>
 <p>La Aplicación es una herramienta web que se ejecuta en tu navegador para gestionar ventas en vivo, inventario, clientes, pedidos, abonos y facturas en PDF, con sincronización opcional de tus datos con tu Google Drive. Se ofrece gratuitamente y puede cambiar o dejar de estar disponible.</p>
@@ -1976,7 +2026,7 @@ const LEGAL_DOCS={privacy:{es:`<h2>Política de Privacidad</h2>
 <p class="meta">Last updated: October 20, 2026</p>
 
 <h3>1. Acceptance</h3>
-<p>By using <strong>Gestor de Ventas LIVE TikTok</strong> (the “App”), operated by <strong>JSGU</strong> (Colombia), you accept these Terms. If you do not agree, do not use the App.</p>
+<p>By using <strong>Administrador Emprendedor</strong> (the “App”), operated by <strong>JSGU</strong> (Colombia), you accept these Terms. If you do not agree, do not use the App.</p>
 
 <h3>2. Description of the service</h3>
 <p>The App is a web tool that runs in your browser to manage live-selling sales, inventory, customers, orders, payments and PDF invoices, with optional synchronization of your data to your Google Drive. It is offered free of charge and may change or become unavailable.</p>
@@ -2342,6 +2392,22 @@ function renderTax(keepInputs){
     ?`⚠ Tus ingresos brutos del año (${money(ingresos)}) superan 1.400 UVT (${money(tope)}): probablemente estás obligado a declarar renta.`
     :`Tus ingresos brutos del año no superan 1.400 UVT (${money(tope)}). Aun así, podrías estar obligado a declarar por patrimonio, consumos con tarjeta, compras o consignaciones (también 1.400 UVT; patrimonio 4.500 UVT).`;
 }
+/* ===== Nombres personalizables de los botones de Inventario ===== */
+const UI_LABELS_DEFAULT={producto:'+ Materias Primas / Stock',kits:'Producto / Kit'};
+const UI_LABELS_ORIGINAL={producto:'+ Agregar producto / stock',kits:'🎁 Kits'};
+function uiLabels(){return Object.assign({},UI_LABELS_DEFAULT,state.uiLabels||{})}
+function applyUiLabels(){
+  const l=uiLabels(),a=$('btnAddProduct'),b=$('btnKits');
+  if(a)a.textContent=l.producto;if(b)b.textContent=l.kits;
+  if($('lblProducto')&&document.activeElement!==$('lblProducto'))$('lblProducto').value=l.producto;
+  if($('lblKits')&&document.activeElement!==$('lblKits'))$('lblKits').value=l.kits;
+}
+function saveUiLabels(){
+  const a=$('lblProducto').value.trim().slice(0,40),b=$('lblKits').value.trim().slice(0,40);
+  if(!a||!b){alert('Escribe un nombre para cada botón.');return}
+  state.uiLabels={producto:a,kits:b};persist();applyUiLabels();alert('Nombres guardados.');
+}
+function resetUiLabels(){state.uiLabels={...UI_LABELS_ORIGINAL};persist();$('lblProducto').value=UI_LABELS_ORIGINAL.producto;$('lblKits').value=UI_LABELS_ORIGINAL.kits;applyUiLabels()}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal();
 </script>
 
