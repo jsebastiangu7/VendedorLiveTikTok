@@ -71,7 +71,7 @@ body.device-tablet .nav-mobile,body.device-mobile .nav-mobile{display:block}
 .ss-panel.open{display:block}
 .ss-group-label{padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;background:var(--thead-bg)}
 .ss-option{padding:8px 10px;cursor:pointer;font-size:13px;color:var(--ink)}
-.ss-option:hover,.ss-option.active{background:var(--primary-light);color:var(--primary)}
+.ss-option:hover,.ss-option.active,.ss-option.hl{background:var(--primary-light);color:var(--primary)}.ss-option.hl{outline:2px solid var(--primary);outline-offset:-2px}
 .ss-empty{padding:10px;color:var(--muted);font-size:13px;text-align:center}
 td .ss-wrap,.field .ss-wrap{width:100%}
 </style>
@@ -278,6 +278,17 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     </div>
     <div class="quick" style="margin-top:12px"><button class="btn primary" onclick="saveUiLabels()">Guardar nombres</button><button class="btn" onclick="resetUiLabels()">Restaurar nombres originales</button></div>
   </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>Numeración de pedidos y facturas</h2>
+    <div class="note" style="margin-bottom:10px">Elige las iniciales y el número con el que empiezan los nuevos pedidos (y sus facturas). Los pedidos ya creados no cambian de número.</div>
+    <div class="formgrid">
+      <div class="field"><label>Iniciales (1 a 6 letras o números)</label><input id="numPrefix" maxlength="6" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"></div>
+      <div class="field"><label>Número de inicio</label><input id="numStart" type="number" min="1" step="1"></div>
+      <div class="field"><label>Cantidad de dígitos</label><input id="numDigits" type="number" min="3" max="8" step="1"></div>
+    </div>
+    <div id="numPreview" style="margin-top:10px;font-weight:700"></div>
+    <div class="quick" style="margin-top:12px"><button class="btn primary" onclick="saveNumbering()">Guardar numeración</button></div>
+  </div>
 </section>
 <section id="legal" class="view">
   <h1>Legal</h1><div class="subtitle">Política de privacidad y términos de servicio de la Aplicación.</div>
@@ -328,7 +339,7 @@ function saveAll(){
   alert(driveAccessToken?'Datos guardados localmente y sincronizados con Google Drive.':'Datos guardados en este navegador. Conecta Google Drive para respaldo en la nube.');
 }
 function refresh(){
-  applyUiLabels();
+  applyUiLabels();applyNumbering();
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
 }
 function navInit(){
@@ -529,6 +540,7 @@ function renderPayments(){
   const arr=sortRows('payments',state.payments);
   $('paymentsBody').innerHTML=arr.length?arr.map(p=>`<tr><td>${esc(p.fecha)}</td><td>${esc(p.pedido)}</td><td>${esc(p.cliente)}</td><td>${money(p.valor)}</td><td>${esc(p.medio)}</td><td>${esc(p.referencia)}</td><td>${esc(payNote(p))}</td><td class="action-row"><button class="btn" onclick="editPayment('${js(p.id)}')">Editar</button><button class="btn danger" onclick="deletePayment('${js(p.id)}')">Eliminar</button></td></tr>`).join(''):'<tr><td colspan="8" class="empty">No hay abonos registrados.</td></tr>';
 }
+let lastLineDate=''; // última fecha elegida: los productos siguientes la heredan salvo que se cambie
 function addLine(product='',qty=1,fecha=''){
   const tr=document.createElement('tr');
   const productsSorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
@@ -537,7 +549,7 @@ function addLine(product='',qty=1,fecha=''){
   const kitsSorted=kitsAvailable.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   const kitOpts=kitsSorted.map(k=>`<option value="${esc(k.nombre)}">🎁 ${esc(k.nombre)} — ${money(k.precioVenta)}</option>`).join('');
   const groups=`<option value="">Seleccionar…</option><optgroup label="Productos">${opts}</optgroup>`+(kitOpts?`<optgroup label="Kits">${kitOpts}</optgroup>`:'');
-  tr.innerHTML=`<td><select class="lineProduct" onchange="lineChanged(this)">${groups}</select></td><td style="width:150px"><input class="lineDate" type="date" value="${esc(fecha||today())}" title="Fecha en que se registró este producto"></td><td style="width:90px"><input class="lineQty" type="number" min="1" value="${qty}" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="linePrice" type="number" min="0" value="0" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="lineTotalInput" type="number" min="0" value="0" oninput="totalFieldChanged(this)"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateLiveTotals()">×</button></td>`;
+  tr.innerHTML=`<td><select class="lineProduct" onchange="lineChanged(this)">${groups}</select></td><td style="width:150px"><input class="lineDate" type="date" value="${esc(fecha||lastLineDate||today())}" onchange="if(this.value)lastLineDate=this.value" title="Fecha en que se registró este producto"></td><td style="width:90px"><input class="lineQty" type="number" min="1" value="${qty}" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="linePrice" type="number" min="0" value="0" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="lineTotalInput" type="number" min="0" value="0" oninput="totalFieldChanged(this)"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateLiveTotals()">×</button></td>`;
   $('lineBody').appendChild(tr);
   const sel=tr.querySelector('.lineProduct');
   if(product){sel.value=product;lineChanged(sel)}
@@ -566,17 +578,44 @@ function totalFieldChanged(input){
   document.querySelectorAll('#lineBody tr').forEach(r=>{t+=Number(r.querySelector('.lineTotalInput').value)||0});
   const ab=Number($('initialPayment').value)||0;$('liveTotal').textContent=money(t);$('liveBalance').textContent=money(Math.max(0,t-ab));
 }
+function orderNumbering(){
+  const n=Object.assign({prefix:'TT',start:1,digits:5},state.orderNumbering||{});
+  n.prefix=String(n.prefix||'TT').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)||'TT';
+  n.start=Math.max(1,parseInt(n.start)||1);n.digits=Math.min(8,Math.max(3,parseInt(n.digits)||5));
+  return n;
+}
 function nextOrderId(){
+  const n=orderNumbering(),re=new RegExp('^'+n.prefix+'-(\\d+)$','i');
   let max=0;
-  state.orders.forEach(o=>{const m=String(o.id||'').match(/^TT-(\d+)$/i);if(m)max=Math.max(max,Number(m[1]))});
-  return 'TT-'+String(max+1).padStart(5,'0');
+  state.orders.forEach(o=>{const m=String(o.id||'').match(re);if(m)max=Math.max(max,Number(m[1]))});
+  const fmt=x=>n.prefix+'-'+String(x).padStart(n.digits,'0');
+  let num=Math.max(max+1,n.start);
+  while(state.orders.some(o=>o.id===fmt(num)))num++;
+  return fmt(num);
+}
+function applyNumbering(){
+  const n=orderNumbering();
+  if($('numPrefix')&&document.activeElement!==$('numPrefix'))$('numPrefix').value=n.prefix;
+  if($('numStart')&&document.activeElement!==$('numStart'))$('numStart').value=n.start;
+  if($('numDigits')&&document.activeElement!==$('numDigits'))$('numDigits').value=n.digits;
+  if($('numPreview'))$('numPreview').textContent='Próximo número: '+nextOrderId();
+  if($('orderId')){$('orderId').placeholder=n.prefix+'-'+String(1).padStart(n.digits,'0')}
+}
+function saveNumbering(){
+  const prefix=String($('numPrefix').value).trim().toUpperCase(),start=parseInt($('numStart').value),digits=parseInt($('numDigits').value);
+  if(!/^[A-Z0-9]{1,6}$/.test(prefix)){alert('Las iniciales deben tener de 1 a 6 letras o números (sin espacios ni símbolos).');return}
+  if(!(start>=1)||start>99999999){alert('El número de inicio debe ser un entero mayor o igual a 1.');return}
+  if(!(digits>=3&&digits<=8)){alert('Los dígitos deben estar entre 3 y 8.');return}
+  state.orderNumbering={prefix,start,digits};persist();
+  if(!editingOrder)$('orderId').value=nextOrderId();
+  applyNumbering();alert('Numeración guardada. Los pedidos ya creados conservan su número; los nuevos usarán '+nextOrderId()+'.');
 }
 function clearOrder(){
-  editingOrder=null;$('orderId').value=nextOrderId();$('orderClient').value='';$('orderDate').value=today();$('orderStatus').value='Pendiente';$('initialPayment').value=0;$('initialMethod').value='Nequi';$('initialRef').value='';$('orderNotes').value='';$('lineBody').innerHTML='';$('editMode').textContent='Nuevo pedido';addLine();
+  lastLineDate='';editingOrder=null;$('orderId').value=nextOrderId();$('orderClient').value='';$('orderDate').value=today();$('orderStatus').value='Pendiente';$('initialPayment').value=0;$('initialMethod').value='Nequi';$('initialRef').value='';$('orderNotes').value='';$('lineBody').innerHTML='';$('editMode').textContent='Nuevo pedido';addLine();
 }
 function editOrder(id){
   const o=state.orders.find(x=>x.id===id);if(!o)return;
-  editingOrder=id;showView('venta');$('orderId').value=o.id;$('orderClient').value=o.cliente;$('orderDate').value=o.fecha;$('orderStatus').value=o.estado;$('orderNotes').value=o.notas||'';$('initialPayment').value=0;$('initialRef').value='';$('lineBody').innerHTML='';(o.lineas||[]).forEach(l=>addLine(l.producto,l.cantidad,l.fecha||o.fecha));document.querySelectorAll('#lineBody tr').forEach((tr,i)=>tr.querySelector('.linePrice').value=o.lineas[i].precio);$('editMode').textContent='Editando pedido '+id;updateLiveTotals();
+  editingOrder=id;showView('venta');$('orderId').value=o.id;$('orderClient').value=o.cliente;$('orderDate').value=o.fecha;$('orderStatus').value=o.estado;$('orderNotes').value=o.notas||'';$('initialPayment').value=0;$('initialRef').value='';$('lineBody').innerHTML='';(o.lineas||[]).forEach(l=>addLine(l.producto,l.cantidad,l.fecha||o.fecha));lastLineDate='';document.querySelectorAll('#lineBody tr').forEach((tr,i)=>tr.querySelector('.linePrice').value=o.lineas[i].precio);$('editMode').textContent='Editando pedido '+id;updateLiveTotals();
 }
 function saveOrder(){
   const id=$('orderId').value.trim()||nextOrderId(),cliente=$('orderClient').value,fecha=$('orderDate').value||today();
@@ -1177,6 +1216,7 @@ function sanitizeState(d){
     invoiceConfig:sanObj(d.invoiceConfig||{},['watermarkW','watermarkH'])||{},
     savedAt:Number(d.savedAt)||0
   };
+  if(d.orderNumbering&&typeof d.orderNumbering==='object')out.orderNumbering={prefix:String(d.orderNumbering.prefix||'TT').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)||'TT',start:Math.max(1,parseInt(d.orderNumbering.start)||1),digits:Math.min(8,Math.max(3,parseInt(d.orderNumbering.digits)||5))};
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string'&&d.uiLabels[k].trim())out.uiLabels[k]=d.uiLabels[k].trim().slice(0,40)})}
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string')out.uiLabels[k]=d.uiLabels[k].slice(0,40)})}
   ['logo','watermark'].forEach(k=>{if(out.invoiceConfig[k]&&!SAN_IMG.test(out.invoiceConfig[k]))out.invoiceConfig[k]=''});
@@ -1404,11 +1444,16 @@ function enhanceSearchable(select){
   function appendOption(container,o){
     const div=document.createElement('div');div.className='ss-option';div.textContent=o.textContent;
     if(o.value===select.value)div.classList.add('active');
-    div.onmousedown=(e)=>{e.preventDefault();select.value=o.value;input.value=o.textContent;closePanel();select.dispatchEvent(new Event('change',{bubbles:true}))};
+    div._opt=o;
+    div.onmousedown=(e)=>{e.preventDefault();chooseOption(o)};
     container.appendChild(div);
   }
+  function chooseOption(o){select.value=o.value;input.value=o.textContent;closePanel();select.dispatchEvent(new Event('change',{bubbles:true}))}
+  let hl=-1;
+  const optEls=()=>Array.from(panel.querySelectorAll('.ss-option'));
+  function setHl(i){const els=optEls();if(!els.length){hl=-1;return}hl=(i+els.length)%els.length;els.forEach((e,k)=>e.classList.toggle('hl',k===hl));els[hl].scrollIntoView({block:'nearest'})}
   function renderPanel(filter){
-    panel.innerHTML='';
+    panel.innerHTML='';hl=-1;
     const f=(filter||'').trim().toLowerCase();
     let any=false;
     Array.from(select.children).forEach(node=>{
@@ -1423,6 +1468,7 @@ function enhanceSearchable(select){
       }
     });
     if(!any){const e=document.createElement('div');e.className='ss-empty';e.textContent='Sin resultados';panel.appendChild(e)}
+    const els=optEls();const act=els.findIndex(e=>e.classList.contains('active')&&f==='');setHl(f?0:(act>=0?act:0)); // resalta la opción actual (o la primera coincidencia)
   }
   function positionPanel(){
     const r=input.getBoundingClientRect();
@@ -1446,7 +1492,22 @@ function enhanceSearchable(select){
   input.addEventListener('focus',()=>{input.value='';openPanel()});
   input.addEventListener('input',()=>{renderPanel(input.value);positionPanel()});
   input.addEventListener('blur',()=>setTimeout(closePanel,150));
-  input.addEventListener('keydown',e=>{if(e.key==='Escape'){closePanel();input.blur()}});
+  input.addEventListener('keydown',e=>{
+    const isOpen=panel.classList.contains('open');
+    if(e.key==='Escape'){closePanel();input.blur();return}
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();
+      if(!isOpen){input.value='';openPanel();return}
+      setHl(hl+(e.key==='ArrowDown'?1:-1));return;
+    }
+    if(e.key==='Home'&&isOpen){e.preventDefault();setHl(0);return}
+    if(e.key==='End'&&isOpen){e.preventDefault();setHl(optEls().length-1);return}
+    if(e.key==='Enter'){
+      e.preventDefault();
+      if(!isOpen){input.value='';openPanel();return}
+      const els=optEls();if(els[hl]&&els[hl]._opt)chooseOption(els[hl]._opt);
+    }
+  });
   select._ssRefresh=()=>{input.value=currentLabel()};
   input.value=currentLabel();
 }
@@ -1852,7 +1913,7 @@ function addScannedProductToOrder(code){
   if(!p)return{text:`Código ${code} no registrado. Vincúlalo desde Inventario > Escanear código.`,error:true};
   const rows=[...document.querySelectorAll('#lineBody tr')];
   let qty=1;
-  const same=rows.find(tr=>tr.querySelector('.lineProduct').value===p.producto&&tr.querySelector('.lineDate').value===today());
+  const same=rows.find(tr=>tr.querySelector('.lineProduct').value===p.producto&&tr.querySelector('.lineDate').value===(lastLineDate||today()));
   if(same){
     const q=same.querySelector('.lineQty');q.value=(Number(q.value)||0)+1;qty=Number(q.value);updateLiveTotals();
   }else{
