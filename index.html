@@ -47,6 +47,9 @@ form{display:grid;gap:14px}.formgrid{display:grid;grid-template-columns:repeat(4
 .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.primary:hover{background:var(--primary2)}
 .btn.danger{color:#fff;background:var(--danger);border-color:var(--danger)}.btn.danger:hover{background:#a5301f}
 th .sortarrows{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:4px;line-height:1}th .sortarrows button{border:0;background:transparent;padding:1px 4px;font-size:10px;line-height:10px;cursor:pointer;color:var(--muted);opacity:.55}th .sortarrows button:hover{opacity:1}th .sortarrows button.on{color:var(--primary);opacity:1}
+.chart{width:100%}.chart svg{width:100%;height:auto;display:block}.chart .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;margin-top:6px;color:var(--muted)}.chart .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.donutwrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.donutwrap svg{width:170px;height:170px;flex:0 0 auto}.donutwrap .legend{flex:1;min-width:150px;flex-direction:column;flex-wrap:nowrap;gap:4px;margin:0}
+.hbars{display:flex;flex-direction:column;gap:6px}.hbars .row{display:grid;grid-template-columns:minmax(80px,32%) 1fr auto;gap:8px;align-items:center;font-size:12px}.hbars .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hbars .bar{background:var(--thead-bg);border-radius:6px;height:12px;overflow:hidden}.hbars .bar b{display:block;height:100%;border-radius:6px}.hbars .val{font-weight:700;white-space:nowrap}
 table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);color:var(--ink)}.tablewrap{overflow:auto;max-height:65vh;border:1px solid var(--border);border-radius:10px}th,td{padding:9px 10px;border-bottom:1px solid var(--row-border);text-align:left;white-space:nowrap}th{background:var(--thead-bg);position:sticky;top:0;z-index:1;font-size:11px;text-transform:uppercase;color:var(--muted)}td.num{text-align:right}
 .pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800;background:var(--thead-bg);color:var(--muted)}.pill.ok{background:var(--primary-light);color:var(--ok)}.pill.warn{background:#fdf1de;color:var(--warn)}.pill.danger{background:#fbe4e0;color:var(--danger)}
 :root[data-theme="dark"] .pill.warn{background:#3a2a10}:root[data-theme="dark"] .pill.danger{background:#3a1512}
@@ -117,6 +120,10 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     <div class="card"><div class="label">Pedidos abiertos</div><div class="metric" id="mAbiertos">0</div></div>
     <div class="card"><div class="label">Stock bajo</div><div class="metric" id="mStock">0</div></div>
   </div>
+  <div class="grid dashboard-grid" style="margin-top:14px">
+    <div class="panel"><h2>Ventas vs abonos (últimos 6 meses)</h2><div class="chart" id="chResumen"></div></div>
+    <div class="panel"><h2>Cobrado vs pendiente</h2><div class="chart" id="chCobro"></div></div>
+  </div>
   <div class="panel" style="margin-top:14px">
     <h2>Utilidad bruta</h2>
     <div class="toolbar" style="margin-bottom:10px">
@@ -135,7 +142,18 @@ td .ss-wrap,.field .ss-wrap{width:100%}
       <div class="card"><div class="label">Utilidad bruta</div><div class="metric" id="uUtil">$0</div></div>
       <div class="card"><div class="label">Margen bruto</div><div class="metric" id="uMargen">0%</div></div>
     </div>
+    <div class="chart" id="chUtil" style="margin-top:12px"></div>
     <div id="utilTop" style="margin-top:12px"></div>
+    <h3 style="margin:18px 0 8px">Inversión del mes</h3>
+    <div class="toolbar" style="margin-bottom:10px"><select id="invMonth" onchange="renderInversion()"></select><select id="invYear" onchange="renderInversion()"></select><span class="note">Monto de inventario ingresado (compras) en el mes. Usa la casilla "Incluir envío en el costo".</span></div>
+    <div class="grid cards3">
+      <div class="card"><div class="label">Inversión del mes</div><div class="metric" id="invMes">$0</div></div>
+      <div class="card"><div class="label">Unidades ingresadas</div><div class="metric" id="invUnid">0</div></div>
+      <div class="card"><div class="label">Compras registradas</div><div class="metric" id="invCompras">0</div></div>
+      <div class="card"><div class="label">Ventas del mes</div><div class="metric" id="invVentas">$0</div></div>
+    </div>
+    <div class="chart" id="chInv" style="margin-top:12px"></div>
+    <div class="note" style="margin-top:8px">Las compras anteriores a esta función se estimaron con la fecha de compra y el stock inicial de cada producto (si repusiste un producto, esa estimación las junta en la última fecha). Desde ahora cada compra queda registrada con su fecha.</div>
     <div class="note" style="margin-top:10px">Utilidad bruta = ventas − costo de lo vendido (costo del producto y, si está marcado, su envío). Cuenta los productos de pedidos no cancelados, en la fecha en que se registró cada producto en el pedido. No descuenta gastos operativos (publicidad, empaques, comisiones, etc.).</div>
   </div>
   <div class="panel" style="margin-top:14px">
@@ -153,6 +171,7 @@ td .ss-wrap,.field .ss-wrap{width:100%}
       <div class="card"><div class="label">Impuesto de renta estimado</div><div class="metric" id="tImpuesto">$0</div></div>
       <div class="card"><div class="label">Tarifa efectiva</div><div class="metric" id="tEfectiva">0%</div></div>
     </div>
+    <div class="chart" id="chTax" style="margin-top:12px"></div>
     <div id="taxObligation" style="margin-top:10px;font-weight:650;font-size:13px"></div>
     <div class="note" style="margin-top:8px">Estimación orientativa con la tarifa del art. 241 del Estatuto Tributario (0 % hasta 1.090 UVT; 19 %, 28 %, 33 %, 35 %, 37 % y 39 % en los rangos siguientes). La UVT 2027 aún no es oficial: $55.668 es el valor estimado publicado (la de 2026 es $52.374); edítala cuando la DIAN la fije. Renta líquida = utilidad bruta − gastos deducibles que ingreses. No incluye otras rentas, patrimonio, deducciones personales ni anticipos; confirma con un contador antes de declarar.</div>
   </div>
@@ -164,18 +183,33 @@ td .ss-wrap,.field .ss-wrap{width:100%}
       <div class="card"><div class="label">Inventario &gt; 90 días</div><div class="metric" id="mInv90">$0</div></div>
       <div class="card"><div class="label">% inventario &gt; 90 días</div><div class="metric" id="mInv90Pct">0%</div></div>
     </div>
+    <div class="grid dashboard-grid" style="margin-top:12px">
+      <div><h3 style="margin:0 0 8px">Inventario por categoría</h3><div class="chart" id="chInvCat"></div></div>
+      <div><h3 style="margin:0 0 8px">Antigüedad del inventario</h3><div class="chart" id="chInvAge"></div></div>
+    </div>
     <div class="note" style="margin-top:10px">El monto total del inventario se calcula solo sobre el costo del producto (sin envío), multiplicado por el stock actual disponible. El envío se muestra por separado.</div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>Categorías: inventario y ventas</h2>
+    <div class="note" id="catPeriod" style="margin-bottom:8px"></div>
+    <div class="tablewrap"><table><thead id="catHead"></thead><tbody id="catBody"></tbody></table></div>
+    <div class="grid dashboard-grid" style="margin-top:12px">
+      <div><h3 style="margin:0 0 8px">Participación en inventario</h3><div class="chart" id="chCatInv"></div></div>
+      <div><h3 style="margin:0 0 8px">Participación en ventas</h3><div class="chart" id="chCatVen"></div></div>
+    </div>
+    <div class="note" style="margin-top:10px">Monto en inventario = costo × stock actual. Monto vendido = ventas del periodo elegido en "Utilidad bruta" (pedidos no cancelados). Los kits se agrupan en "KITS".</div>
   </div>
   <div class="panel" style="margin-top:14px">
     <h2>Pedidos por cliente</h2>
     <div class="toolbar" style="margin-bottom:0">
       <select id="dashboardClient" onchange="renderClientOrders()"><option value="">Seleccionar cliente…</option></select>
     </div>
+    <div class="chart" id="chClients" style="margin-top:12px"></div>
     <div id="clientOrders" class="client-orders"><div class="empty">Selecciona un cliente para ver sus pedidos.</div></div>
   </div>
   <div class="grid dashboard-grid" style="margin-top:14px">
-    <div class="panel"><h2>Pedidos recientes</h2><div id="recentOrders"></div></div>
-    <div class="panel"><h2>Productos con stock bajo</h2><div id="lowStock"></div></div>
+    <div class="panel"><h2>Pedidos recientes</h2><div class="chart" id="chRecent" style="margin-bottom:10px"></div><div id="recentOrders"></div></div>
+    <div class="panel"><h2>Productos con stock bajo</h2><div class="chart" id="chLow" style="margin-bottom:10px"></div><div id="lowStock"></div></div>
   </div>
 </section>
 
@@ -192,7 +226,8 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     <div class="tablewrap"><table class="order-lines"><thead><tr><th style="min-width:260px">Producto</th><th>Fecha</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th></tr></thead><tbody id="lineBody"></tbody></table></div>
     <div class="formgrid" style="margin-top:14px">
       <div class="field"><label>Abono recibido</label><input id="initialPayment" type="number" min="0" value="0"></div>
-      <div class="field"><label>Medio de pago</label><select id="initialMethod"><option>Nequi</option><option>Daviplata</option><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
+      <div class="field"><label>Fecha del abono</label><input id="initialDate" type="date"></div>
+      <div class="field"><label>Medio de pago</label><select id="initialMethod"><option>Transferencia</option><option>Nequi</option><option>Daviplata</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
       <div class="field"><label>Referencia</label><input id="initialRef" placeholder="Opcional"></div>
       <div class="field"><label>Notas (del pedido y del abono)</label><input id="orderNotes" placeholder="Opcional"></div>
     </div>
@@ -238,7 +273,7 @@ td .ss-wrap,.field .ss-wrap{width:100%}
       <div class="field"><label>Pedido</label><select id="payOrder"></select></div>
       <div class="field"><label>Fecha</label><input id="payDate" type="date"></div>
       <div class="field"><label>Valor</label><input id="payAmount" type="number" min="0"></div>
-      <div class="field"><label>Medio</label><select id="payMethod"><option>Nequi</option><option>Daviplata</option><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
+      <div class="field"><label>Medio</label><select id="payMethod"><option>Transferencia</option><option>Nequi</option><option>Daviplata</option><option>Efectivo</option><option>Tarjeta</option><option>Otro</option></select></div>
       <div class="field"><label>Referencia</label><input id="payRef"></div>
       <div class="field"><label>Nota (aparece en la factura)</label><input id="payNote"></div>
     </div>
@@ -268,6 +303,11 @@ td .ss-wrap,.field .ss-wrap{width:100%}
     <div class="quick" style="margin-top:14px"><button class="btn primary" onclick="saveInvoiceConfig()">Guardar datos de factura</button><button class="btn danger" onclick="clearInvoiceLogo()">Quitar logo</button><button class="btn danger" onclick="clearWatermark()">Quitar marca de agua</button></div>
     <div class="note" style="margin-top:10px">La marca de agua se ajusta automáticamente al tamaño y márgenes de la hoja, conservando su proporción original, y se aplica con transparencia reducida para no interferir con la lectura de la factura.</div>
     <div class="note" style="margin-top:6px">Nota técnica: Arial (sustituida por Inter), Nunito, Montserrat, Perfect Lemonade, Sweetbliss Personal Use y Shortcake Strawberry están incrustadas de verdad en el PDF a partir de los archivos que proporcionaste y se ven correctamente con tildes y ñ. "Mochibop" también está incrustada, pero muestra las tildes y la ñ sin su acento visual (limitación de diseño de esa fuente demo). Se retiraron "Comic Sans", "Century Gothic" y "Bubblegum Bliss" de la lista por no tener un archivo utilizable (sin archivo disponible, archivo de prueba con los números inutilizados, o sin soporte de tildes/ñ que cortaba el texto).</div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>Categorías de productos</h2>
+    <div class="note" style="margin-bottom:10px">Agrega, renombra o elimina las categorías que usas en el inventario.</div>
+    <div class="quick"><button class="btn primary" onclick="openCatModal()">Categorías</button></div>
   </div>
   <div class="panel" style="margin-top:14px">
     <h2>Nombres de los botones de Inventario</h2>
@@ -312,6 +352,15 @@ if(!state.categories||!state.categories.length) state.categories=[...DEFAULT_CAT
 state.categories=state.categories.map(c=>c.toUpperCase());
 if(!state.kits) state.kits=[];
 let editingOrder=null;
+/* Registro de compras de inventario (para la "inversión" mensual). Las compras anteriores a este registro se estiman con la fecha de compra y el stock inicial de cada producto. */
+function ensurePurchases(){
+  if(Array.isArray(state.purchases))return;
+  state.purchases=state.inventory.filter(p=>(Number(p.stock)||0)>0&&p.fechaCompra).map(p=>({id:uid(),fecha:p.fechaCompra,producto:p.producto,categoria:p.categoria||'',cantidad:Number(p.stock)||0,costo:Number(p.costo)||0,envio:Number(p.envio)||0,origen:'estimada'}));
+}
+function recordPurchase(p,qty,fecha){
+  if(!(qty>0))return;ensurePurchases();
+  state.purchases.push({id:uid(),fecha:fecha||today(),producto:p.producto,categoria:p.categoria||'',cantidad:qty,costo:Number(p.costo)||0,envio:Number(p.envio)||0,origen:'registrada'});
+}
 
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0).replace(/ /g,' ');
@@ -339,6 +388,7 @@ function saveAll(){
   alert(driveAccessToken?'Datos guardados localmente y sincronizados con Google Drive.':'Datos guardados en este navegador. Conecta Google Drive para respaldo en la nube.');
 }
 function refresh(){
+  ensurePurchases();
   applyUiLabels();applyNumbering();
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
 }
@@ -417,8 +467,9 @@ function inventoryValueStats(){
   return {totalCosto, totalEnvio, over90, pct};
 }
 function renderDashboard(){
-  const total=state.orders.reduce((s,o)=>s+orderTotal(o),0);
-  const ab=state.payments.reduce((s,p)=>s+(Number(p.valor)||0),0);
+  const actIds=new Set(state.orders.filter(o=>o.estado!=='Cancelado').map(o=>o.id));
+  const total=state.orders.filter(o=>actIds.has(o.id)).reduce((s,o)=>s+orderTotal(o),0);
+  const ab=state.payments.filter(p=>actIds.has(p.pedido)).reduce((s,p)=>s+(Number(p.valor)||0),0);
   $('mVentas').textContent=money(total);$('mAbonos').textContent=money(ab);$('mSaldo').textContent=money(Math.max(0,total-ab));
   $('mAbiertos').textContent=state.orders.filter(o=>!['Pagado','Entregado','Cancelado'].includes(o.estado)).length;
   $('mStock').textContent=state.inventory.filter(p=>stockInfo(p).status!=='EN STOCK').length;
@@ -433,6 +484,7 @@ function renderDashboard(){
   $('lowStock').innerHTML=low.length?low.map(p=>`<div class="statusbar"><span>${esc(p.producto)}</span>${pill(p.status)} <b>${p.current}</b></div>`).join(''):'<div class="empty">No hay productos con stock bajo.</div>';
   fillDashboardClients();
   renderUtilidad();
+  renderResumenCharts();renderInventoryCharts();renderOrdersCharts();
 }
 function fillDashboardClients(){
   const s=$('dashboardClient'); if(!s)return;
@@ -444,6 +496,7 @@ function fillDashboardClients(){
 }
 function renderClientOrders(){
   const box=$('clientOrders'); if(!box)return;
+  renderClientsChart();
   const client=$('dashboardClient')?.value||'';
   if(!client){box.innerHTML='<div class="empty">Selecciona un cliente para ver sus pedidos.</div>';return}
   const arr=state.orders.filter(o=>o.cliente===client).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))||String(b.id).localeCompare(String(a.id)));
@@ -469,6 +522,7 @@ const SORT_DEFS={
   clients:{cols:[['Cliente','nombre','t'],['WhatsApp','telefono','t'],['Ciudad','tiktok','t'],['Dirección','direccion','t'],['Estado','estado','t'],['']],def:['nombre','asc'],get:(c,k)=>c[k],tie:'nombre'},
   inventory:{cols:[['Producto','producto','t'],['Código','codigo','t'],['Categoría','categoria','t'],['Costo','costo','n'],['Envío','envio','n'],['Stock inicial','stock','n'],['Vendido','sold','n'],['Stock actual','current','n'],['Estado','status','t'],['Precio venta','precio','n'],['Margen %','margen','n'],['Fecha compra','fechaCompra','t'],['Días','dias','n'],['Acciones']],def:['producto','asc'],
     get:(p,k)=>k==='margen'?margenPct(p):k==='dias'?(daysSince(p.fechaCompra)):p[k],tie:'producto'},
+  categories:{cols:[['Categoría','cat','t'],['Monto en inventario','inv','n'],['% inventario','invPct','n'],['Monto vendido','ven','n'],['% ventas','venPct','n']],def:['inv','desc'],get:(r,k)=>r[k],tie:'cat'},
   payments:{cols:[['Fecha','fecha','t'],['Pedido','pedido','t'],['Cliente','cliente','t'],['Valor','valor','n'],['Medio','medio','t'],['Referencia','referencia','t'],['Nota','nota','t'],['Acciones']],def:['pedido','asc'],
     get:(p,k)=>k==='nota'?payNote(p):p[k],tie:'fecha'}
 };
@@ -611,11 +665,11 @@ function saveNumbering(){
   applyNumbering();alert('Numeración guardada. Los pedidos ya creados conservan su número; los nuevos usarán '+nextOrderId()+'.');
 }
 function clearOrder(){
-  lastLineDate='';editingOrder=null;$('orderId').value=nextOrderId();$('orderClient').value='';$('orderDate').value=today();$('orderStatus').value='Pendiente';$('initialPayment').value=0;$('initialMethod').value='Nequi';$('initialRef').value='';$('orderNotes').value='';$('lineBody').innerHTML='';$('editMode').textContent='Nuevo pedido';addLine();
+  lastLineDate='';editingOrder=null;$('orderId').value=nextOrderId();$('orderClient').value='';$('orderDate').value=today();$('orderStatus').value='Pendiente';$('initialPayment').value=0;$('initialMethod').value='Transferencia';$('initialDate').value=today();$('initialRef').value='';$('orderNotes').value='';$('lineBody').innerHTML='';$('editMode').textContent='Nuevo pedido';addLine();
 }
 function editOrder(id){
   const o=state.orders.find(x=>x.id===id);if(!o)return;
-  editingOrder=id;showView('venta');$('orderId').value=o.id;$('orderClient').value=o.cliente;$('orderDate').value=o.fecha;$('orderStatus').value=o.estado;$('orderNotes').value=o.notas||'';$('initialPayment').value=0;$('initialRef').value='';$('lineBody').innerHTML='';(o.lineas||[]).forEach(l=>addLine(l.producto,l.cantidad,l.fecha||o.fecha));lastLineDate='';document.querySelectorAll('#lineBody tr').forEach((tr,i)=>tr.querySelector('.linePrice').value=o.lineas[i].precio);$('editMode').textContent='Editando pedido '+id;updateLiveTotals();
+  editingOrder=id;showView('venta');$('orderId').value=o.id;$('orderClient').value=o.cliente;$('orderDate').value=o.fecha;$('orderStatus').value=o.estado;$('orderNotes').value=o.notas||'';$('initialPayment').value=0;$('initialDate').value=today();$('initialMethod').value='Transferencia';$('initialRef').value='';$('lineBody').innerHTML='';(o.lineas||[]).forEach(l=>addLine(l.producto,l.cantidad,l.fecha||o.fecha));lastLineDate='';document.querySelectorAll('#lineBody tr').forEach((tr,i)=>tr.querySelector('.linePrice').value=o.lineas[i].precio);$('editMode').textContent='Editando pedido '+id;updateLiveTotals();
 }
 function saveOrder(){
   const id=$('orderId').value.trim()||nextOrderId(),cliente=$('orderClient').value,fecha=$('orderDate').value||today();
@@ -627,7 +681,7 @@ function saveOrder(){
   const o={id,cliente,fecha,estado:$('orderStatus').value,notas:$('orderNotes').value,lineas};
   if(old){Object.assign(old,o)}else{state.orders.push(o)}
   const initial=Number($('initialPayment').value)||0;
-  if(initial>0)state.payments.push({id:uid(),pedido:id,fecha:today(),cliente,valor:initial,medio:$('initialMethod').value,referencia:$('initialRef').value,nota:$('orderNotes').value.trim()});
+  if(initial>0)state.payments.push({id:uid(),pedido:id,fecha:$('initialDate').value||today(),cliente,valor:initial,medio:$('initialMethod').value,referencia:$('initialRef').value,nota:$('orderNotes').value.trim()});
   persist();alert(old?'Pedido actualizado.':'Pedido guardado.');clearOrder();refresh();showView('pedidos');
 }
 function choosePayment(id){showView('abonos');$('payOrder').value=id}
@@ -710,6 +764,7 @@ function saveProductModal(){
     if(!p){alert('Selecciona un producto.');return}
     p.stock=(Number(p.stock)||0)+qty;
     const fc=$('newProductDate').value;if(qty>0&&fc)p.fechaCompra=fc; // fecha de la nueva compra
+    recordPurchase(p,qty,fc||today());
     persist();closeProductModal();refresh();alert(`Se adicionaron ${qty} unidades a ${name}${qty>0&&fc?' (compra del '+fc+')':''}.`);return;
   }
   const name=$('newProductName').value.trim();
@@ -723,6 +778,7 @@ function saveProductModal(){
     envio:Number($('newProductShipping').value)||0,stock:qty,sold:0,precio:Number($('newProductPrice').value)||0,
     minimo:Number($('newProductMin').value)||0,fechaCompra:$('newProductDate').value||today()
   });
+  recordPurchase(state.inventory[state.inventory.length-1],qty,$('newProductDate').value||today());
   persist();closeProductModal();refresh();alert('Producto creado correctamente.');
 }
 function openEditProduct(name){
@@ -756,18 +812,20 @@ function saveEditProduct(){
   p.producto=newName;
   p.codigo=newCode;
   p.categoria=$('editProductCategory').value==='__new__'?p.categoria:$('editProductCategory').value;
+  const stockDelta=newStock-(Number(p.stock)||0);
   p.stock=newStock;
   p.costo=Number($('editProductCost').value)||0;
   p.envio=Number($('editProductShipping').value)||0;
   p.precio=Number($('editProductPrice').value)||0;
   p.fechaCompra=$('editProductDate').value||p.fechaCompra;
+  if(stockDelta>0)recordPurchase(p,stockDelta,p.fechaCompra||today()); // subir el stock a mano se cuenta como compra
   persist();
   closeEditProduct();refresh();alert('Producto actualizado.');
 }
 function loadDefaults(){
   $('orderDate').value=today();$('orderId').value=nextOrderId();$('lineBody').innerHTML='';addLine();
   $('initialPayment').addEventListener('input',updateLiveTotals);
-  $('payDate').value=today();
+  $('payDate').value=today();$('initialDate').value=today();
 }
 function loadInvoiceConfig(){
   const c=state.invoiceConfig;
@@ -1216,6 +1274,7 @@ function sanitizeState(d){
     invoiceConfig:sanObj(d.invoiceConfig||{},['watermarkW','watermarkH'])||{},
     savedAt:Number(d.savedAt)||0
   };
+  if(Array.isArray(d.purchases))out.purchases=arr(d.purchases,['cantidad','costo','envio']);
   if(d.orderNumbering&&typeof d.orderNumbering==='object')out.orderNumbering={prefix:String(d.orderNumbering.prefix||'TT').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)||'TT',start:Math.max(1,parseInt(d.orderNumbering.start)||1),digits:Math.min(8,Math.max(3,parseInt(d.orderNumbering.digits)||5))};
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string'&&d.uiLabels[k].trim())out.uiLabels[k]=d.uiLabels[k].trim().slice(0,40)})}
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string')out.uiLabels[k]=d.uiLabels[k].slice(0,40)})}
@@ -1739,7 +1798,7 @@ function confirmInventoryImport(){
       if(cat)p.categoria=cat;
       p.fechaCompra=fecha;actualizados++;
     }
-    p.stock=(Number(p.stock)||0)+r.cantidad;unidades+=r.cantidad;
+    p.stock=(Number(p.stock)||0)+r.cantidad;unidades+=r.cantidad;recordPurchase(p,r.cantidad,fecha);
     if(r.codigo&&!p.codigo&&!findProductByCode(r.codigo))p.codigo=r.codigo;
   });
   persist();refresh();closeImportModal();
@@ -2243,7 +2302,7 @@ function vpAccept(){
   $('vpResult').innerHTML=`<h3 style="margin:0 0 8px">Última asignación — ${esc(p.producto)}</h3><div class="note" style="margin-bottom:8px">Unidades asignadas: ${totalQty} · Unidades que quedan disponibles: ${quedan}</div><div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Unidades</th><th>Pedido</th><th>Acción</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.cliente)}</td><td>${r.qty}</td><td>${esc(r.pedido)}</td><td>${esc(r.accion)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 /* ===== Abonos: estado, edición, eliminación y abonos por cliente ===== */
-const PAY_METHODS=['Nequi','Daviplata','Transferencia','Efectivo','Tarjeta','Otro'];
+const PAY_METHODS=['Transferencia','Nequi','Daviplata','Efectivo','Tarjeta','Otro'];
 function syncOrderStatusByPayments(o){
   const t=orderTotal(o),pd=paid(o);
   if(t>0&&pd>=t&&(o.estado==='Pendiente'||o.estado==='Apartado'))o.estado='Pagado';
@@ -2416,7 +2475,9 @@ function renderUtilidad(){
   $('uMargen').textContent=ventas>0?(util/ventas*100).toFixed(1)+'%':'0%';
   const by={};rows.forEach(r=>{const o=by[r.producto]||(by[r.producto]={producto:r.producto,qty:0,venta:0,costo:0});o.qty+=r.qty;o.venta+=r.venta;o.costo+=r.costo});
   const top=Object.values(by).map(o=>({...o,util:o.venta-o.costo})).sort((a,b)=>b.util-a.util).slice(0,10);
+  renderUtilChart(rows,per);renderCategoriesDash(rows,per);
   $('utilTop').innerHTML=top.length?`<div class="tablewrap"><table><thead><tr><th>Producto (top 10 por utilidad)</th><th>Unid.</th><th>Ventas</th><th>Costo</th><th>Utilidad</th></tr></thead><tbody>${top.map(o=>`<tr><td>${esc(o.producto)}</td><td>${o.qty}</td><td>${money(o.venta)}</td><td>${money(o.costo)}</td><td>${money(o.util)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay ventas en este periodo.</div>';
+  renderInversion();
   renderTax();
 }
 const UVT_2027_ESTIMADA=55668;
@@ -2449,6 +2510,7 @@ function renderTax(keepInputs){
   $('tImpuesto').textContent=money(imp);
   $('tEfectiva').textContent=base>0?(imp/base*100).toFixed(1)+'%':'0%';
   const tope=1400*uvt;
+  renderTaxChart(ingresos,util,gastos,imp,tope);
   $('taxObligation').textContent=ingresos>=tope
     ?`⚠ Tus ingresos brutos del año (${money(ingresos)}) superan 1.400 UVT (${money(tope)}): probablemente estás obligado a declarar renta.`
     :`Tus ingresos brutos del año no superan 1.400 UVT (${money(tope)}). Aun así, podrías estar obligado a declarar por patrimonio, consumos con tarjeta, compras o consignaciones (también 1.400 UVT; patrimonio 4.500 UVT).`;
@@ -2469,6 +2531,211 @@ function saveUiLabels(){
   state.uiLabels={producto:a,kits:b};persist();applyUiLabels();alert('Nombres guardados.');
 }
 function resetUiLabels(){state.uiLabels={...UI_LABELS_ORIGINAL};persist();$('lblProducto').value=UI_LABELS_ORIGINAL.producto;$('lblKits').value=UI_LABELS_ORIGINAL.kits;applyUiLabels()}
+/* ===== Gráficas (SVG propio, sin librerías externas) ===== */
+const CH_COLORS=['#3d8c4f','#e0a030','#4a90d9','#d9534f','#8e6fd1','#20a8a0','#c0709a','#7a8b99'];
+const compactMoney=n=>{const a=Math.abs(n),sg=n<0?'-':'';if(a>=1e9)return sg+'$'+(a/1e9).toFixed(1).replace(/\.0$/,'')+' MM';if(a>=1e6)return sg+'$'+(a/1e6).toFixed(1).replace(/\.0$/,'')+' M';if(a>=1e3)return sg+'$'+Math.round(a/1e3)+' k';return sg+'$'+Math.round(a)};
+function niceMax(v){if(!(v>0))return 1;const pw=Math.pow(10,Math.floor(Math.log10(v))),f=v/pw;return (f<=1?1:f<=2?2:f<=5?5:10)*pw}
+const emptyChart='<div class="empty">Sin datos para graficar.</div>';
+function legendHtml(items){return '<div class="legend">'+items.map(it=>`<span><i style="background:${it.color}"></i>${esc(it.text)}</span>`).join('')+'</div>'}
+function chartBars(id,labels,series,opt){
+  const el=$(id);if(!el)return;opt=opt||{};
+  const all=series.flatMap(sr=>sr.values.map(v=>Number(v)||0));
+  if(!labels.length||!all.some(v=>v!==0)){el.innerHTML=emptyChart;return}
+  const W=640,H=opt.h||230,ml=58,mr=10,mt=12,mb=36,fmt=opt.fmt||compactMoney,full=opt.full||money;
+  const mx=Math.max(0,...all),mn=Math.min(0,...all);
+  const top=mx>0?niceMax(mx):niceMax(-mn)/4,bot=mn<0?-niceMax(-mn):0;
+  const y=v=>mt+(H-mt-mb)*(top-v)/(top-bot);
+  const n=labels.length,gw=(W-ml-mr)/n,bw=Math.min(36,gw*0.78/series.length),step=Math.ceil(n/12);
+  let g='';
+  for(let i=0;i<=4;i++){const v=bot+(top-bot)*i/4,yy=y(v);g+=`<line x1="${ml}" x2="${W-mr}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--border)" stroke-width="1"/><text x="${ml-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">${esc(fmt(v))}</text>`}
+  series.forEach((sr,si)=>sr.values.forEach((v,i)=>{
+    v=Number(v)||0;const x=ml+gw*i+(gw-bw*series.length)/2+bw*si,y0=y(0),y1=y(v);
+    g+=`<rect x="${x.toFixed(1)}" y="${Math.min(y0,y1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(v?1:0,Math.abs(y0-y1)).toFixed(1)}" rx="2" fill="${sr.color||CH_COLORS[si%CH_COLORS.length]}"><title>${esc(labels[i])} — ${esc(sr.name)}: ${esc(full(v))}</title></rect>`;
+  }));
+  labels.forEach((l,i)=>{if(i%step)return;g+=`<text x="${(ml+gw*i+gw/2).toFixed(1)}" y="${H-mb+14}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(l)}</text>`});
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label||'Gráfica de barras')}">${g}</svg>`+(series.length>1?legendHtml(series.map((sr,si)=>({color:sr.color||CH_COLORS[si%CH_COLORS.length],text:sr.name}))):'');
+}
+function chartDonut(id,items,opt){
+  const el=$(id);if(!el)return;opt=opt||{};
+  const full=opt.full||money;
+  let list=items.filter(it=>Number(it.value)>0).sort((a,b)=>b.value-a.value);
+  if(list.length>7){const rest=list.slice(6).reduce((a,it)=>a+it.value,0);list=[...list.slice(0,6),{label:'Otros',value:rest}]}
+  const tot=list.reduce((a,it)=>a+it.value,0);
+  if(!list.length||!(tot>0)){el.innerHTML=emptyChart;return}
+  const C=85,R=78,r=48;let ang=-Math.PI/2,arcs='';
+  list.forEach((it,i)=>{
+    it.color=it.color||CH_COLORS[i%CH_COLORS.length];
+    const frac=it.value/tot;
+    if(list.length===1){arcs+=`<circle cx="${C}" cy="${C}" r="${(R+r)/2}" fill="none" stroke="${it.color}" stroke-width="${R-r}"><title>${esc(it.label)}: ${esc(full(it.value))} (100%)</title></circle>`;return}
+    const a1=ang+frac*2*Math.PI,lg=frac>0.5?1:0,pt=(rad,a)=>[(C+rad*Math.cos(a)).toFixed(2),(C+rad*Math.sin(a)).toFixed(2)];
+    const [x0,y0]=pt(R,ang),[x1,y1]=pt(R,a1),[x2,y2]=pt(r,a1),[x3,y3]=pt(r,ang);
+    arcs+=`<path d="M${x0} ${y0} A${R} ${R} 0 ${lg} 1 ${x1} ${y1} L${x2} ${y2} A${r} ${r} 0 ${lg} 0 ${x3} ${y3} Z" fill="${it.color}"><title>${esc(it.label)}: ${esc(full(it.value))} (${(frac*100).toFixed(1)}%)</title></path>`;
+    ang=a1;
+  });
+  const center=`<text x="${C}" y="${C-2}" text-anchor="middle" font-size="11" fill="var(--muted)">Total</text><text x="${C}" y="${C+14}" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">${esc((opt.fmt||compactMoney)(tot))}</text>`;
+  el.innerHTML=`<div class="donutwrap"><svg viewBox="0 0 170 170" role="img" aria-label="${esc(opt.label||'Gráfica circular')}">${arcs}${center}</svg><div class="legend">${list.map(it=>`<span><i style="background:${it.color}"></i>${esc(it.label)} — <b>${(it.value/tot*100).toFixed(1)}%</b> · ${esc(full(it.value))}</span>`).join('')}</div></div>`;
+}
+function chartHBars(id,items,opt){
+  const el=$(id);if(!el)return;opt=opt||{};const full=opt.full||money;
+  const list=items.filter(it=>Number(it.value)>0);
+  if(!list.length){el.innerHTML=emptyChart;return}
+  const mx=Math.max(...list.map(it=>it.value));
+  el.innerHTML='<div class="hbars">'+list.map((it,i)=>`<div class="row"><span class="lbl" title="${esc(it.label)}">${esc(it.label)}</span><span class="bar"><b style="width:${(it.value/mx*100).toFixed(1)}%;background:${it.color||CH_COLORS[0]}"></b></span><span class="val">${esc(full(it.value))}</span></div>`).join('')+'</div>';
+}
+const MES_CORTO=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const mesLabel=k=>MES_CORTO[Number(k.slice(5,7))-1]+' '+k.slice(2,4);
+function monthKeysBack(n,endKey){ // n meses terminando en endKey (YYYY-MM)
+  let y=Number(endKey.slice(0,4)),m=Number(endKey.slice(5,7)),out=[];
+  for(let i=0;i<n;i++){out.unshift(y+'-'+String(m).padStart(2,'0'));m--;if(m<1){m=12;y--}}
+  return out;
+}
+const activeOrders=()=>state.orders.filter(o=>o.estado!=='Cancelado');
+function renderResumenCharts(){
+  const act=activeOrders(),keys=monthKeysBack(6,today().slice(0,7));
+  const ven=Object.fromEntries(keys.map(k=>[k,0])),abo=Object.fromEntries(keys.map(k=>[k,0]));
+  act.forEach(o=>(o.lineas||[]).forEach(l=>{const k=String(l.fecha||o.fecha).slice(0,7);if(k in ven)ven[k]+=(Number(l.precio)||0)*(Number(l.cantidad)||0)}));
+  const ids=new Set(act.map(o=>o.id));
+  state.payments.forEach(pg=>{const k=String(pg.fecha).slice(0,7);if(k in abo&&ids.has(pg.pedido))abo[k]+=Number(pg.valor)||0});
+  chartBars('chResumen',keys.map(mesLabel),[{name:'Ventas',values:keys.map(k=>ven[k]),color:CH_COLORS[0]},{name:'Abonos',values:keys.map(k=>abo[k]),color:CH_COLORS[2]}],{label:'Ventas y abonos por mes'});
+  const total=act.reduce((a,o)=>a+orderTotal(o),0),cobrado=act.reduce((a,o)=>a+Math.min(paid(o),orderTotal(o)),0);
+  chartDonut('chCobro',[{label:'Cobrado',value:cobrado,color:CH_COLORS[0]},{label:'Pendiente',value:Math.max(0,total-cobrado),color:CH_COLORS[1]}],{label:'Cobrado frente a pendiente'});
+}
+// Agrupa filas de venta por día, mes o año según la amplitud del periodo
+function bucketRows(rows,per){
+  let from=per.from,to=per.to;
+  if(from<'1900'||to>'3000'){const fs=rows.map(r=>r.fecha).filter(Boolean).sort();if(!fs.length)return {labels:[],data:[]};from=fs[0];to=fs[fs.length-1]}
+  const d0=new Date(from+'T12:00:00Z'),d1=new Date(to+'T12:00:00Z'),days=Math.round((d1-d0)/86400000)+1,months=(d1.getUTCFullYear()-d0.getUTCFullYear())*12+d1.getUTCMonth()-d0.getUTCMonth()+1;
+  const unit=days<=62?'d':months<=36?'m':'y';
+  const keyOf=f=>unit==='d'?f.slice(0,10):unit==='m'?f.slice(0,7):f.slice(0,4);
+  const keys=[];
+  if(unit==='d'){for(let t=d0.getTime();t<=d1.getTime();t+=86400000)keys.push(new Date(t).toISOString().slice(0,10))}
+  else if(unit==='m'){keys.push(...monthKeysBack(months,to.slice(0,7)))}
+  else{for(let y=d0.getUTCFullYear();y<=d1.getUTCFullYear();y++)keys.push(String(y))}
+  const map=Object.fromEntries(keys.map(k=>[k,{venta:0,costo:0}]));
+  rows.forEach(r=>{const o=map[keyOf(r.fecha)];if(o){o.venta+=r.venta;o.costo+=r.costo}});
+  const labels=keys.map(k=>unit==='d'?k.slice(8,10)+'/'+k.slice(5,7):unit==='m'?mesLabel(k):k);
+  return {labels,data:keys.map(k=>map[k])};
+}
+function renderUtilChart(rows,per){
+  const b=bucketRows(rows,per);
+  chartBars('chUtil',b.labels,[{name:'Ventas',values:b.data.map(x=>x.venta),color:CH_COLORS[0]},{name:'Costo',values:b.data.map(x=>x.costo),color:CH_COLORS[1]},{name:'Utilidad bruta',values:b.data.map(x=>x.venta-x.costo),color:CH_COLORS[2]}],{label:'Ventas, costo y utilidad bruta del periodo'});
+}
+function renderInversion(){
+  if(!$('invMonth'))return;
+  ensurePurchases();
+  const ys=new Set([new Date().getFullYear()]);state.purchases.forEach(pu=>{const y=parseInt(String(pu.fecha).slice(0,4));if(y)ys.add(y)});
+  const yrs=[...ys].sort((a,b)=>b-a);
+  fillSelectKeep($('invYear'),yrs.map(y=>`<option>${y}</option>`).join(''),String(new Date().getFullYear()));
+  if(!$('invMonth').options.length)$('invMonth').innerHTML=MONTHS_ES.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  if(!$('invMonth').dataset.init){$('invMonth').value=String(new Date().getMonth());$('invMonth').dataset.init='1'}
+  const y=$('invYear').value,m=Number($('invMonth').value),key=y+'-'+String(m+1).padStart(2,'0'),ship=$('utilShip')?$('utilShip').checked:true;
+  const cost=pu=>(Number(pu.cantidad)||0)*((Number(pu.costo)||0)+(ship?(Number(pu.envio)||0):0));
+  const inMonth=state.purchases.filter(pu=>String(pu.fecha).slice(0,7)===key);
+  $('invMes').textContent=money(inMonth.reduce((a,pu)=>a+cost(pu),0));
+  $('invUnid').textContent=inMonth.reduce((a,pu)=>a+(Number(pu.cantidad)||0),0).toLocaleString('es-CO');
+  $('invCompras').textContent=inMonth.length;
+  const sales=salesLines(ship);
+  $('invVentas').textContent=money(sales.filter(r=>r.fecha.slice(0,7)===key).reduce((a,r)=>a+r.venta,0));
+  const keys=Array.from({length:12},(_,i)=>y+'-'+String(i+1).padStart(2,'0'));
+  const inv=Object.fromEntries(keys.map(k=>[k,0])),ven=Object.fromEntries(keys.map(k=>[k,0]));
+  state.purchases.forEach(pu=>{const k=String(pu.fecha).slice(0,7);if(k in inv)inv[k]+=cost(pu)});
+  sales.forEach(r=>{const k=r.fecha.slice(0,7);if(k in ven)ven[k]+=r.venta});
+  chartBars('chInv',keys.map(mesLabel),[{name:'Inversión (inventario ingresado)',values:keys.map(k=>inv[k]),color:CH_COLORS[3]},{name:'Ventas',values:keys.map(k=>ven[k]),color:CH_COLORS[0]}],{label:'Inversión y ventas por mes del año '+y});
+}
+function renderCategoriesDash(rows,per){
+  if(!$('catBody'))return;
+  const SIN='SIN CATEGORÍA',map={};
+  const get=c=>map[c]||(map[c]={cat:c,inv:0,ven:0});
+  state.categories.forEach(c=>get(c));
+  state.inventory.forEach(p=>{const c=p.categoria||SIN;get(c).inv+=(Number(p.costo)||0)*Math.max(0,stockInfo(p).current)});
+  rows.forEach(r=>{
+    const p=state.inventory.find(x=>x.producto===r.producto);
+    const c=p?(p.categoria||SIN):((state.kits||[]).some(k=>k.nombre===r.producto)?'KITS':SIN);
+    get(c).ven+=r.venta;
+  });
+  let list=Object.values(map).filter(r=>state.categories.includes(r.cat)||r.inv>0||r.ven>0);
+  const totI=list.reduce((a,r)=>a+r.inv,0),totV=list.reduce((a,r)=>a+r.ven,0);
+  list.forEach(r=>{r.invPct=totI>0?r.inv/totI*100:0;r.venPct=totV>0?r.ven/totV*100:0});
+  list=sortRows('categories',list);
+  $('catHead').innerHTML=sortHeadHtml('categories');
+  $('catPeriod').textContent='Ventas del periodo: '+per.label+' (se cambia en "Utilidad bruta"). Inventario: valor actual.';
+  $('catBody').innerHTML=list.length?list.map(r=>`<tr><td>${esc(r.cat)}</td><td>${money(r.inv)}</td><td>${r.invPct.toFixed(1)}%</td><td>${money(r.ven)}</td><td>${r.venPct.toFixed(1)}%</td></tr>`).join('')+`<tr style="font-weight:800"><td>Total</td><td>${money(totI)}</td><td>${totI>0?'100.0%':'0.0%'}</td><td>${money(totV)}</td><td>${totV>0?'100.0%':'0.0%'}</td></tr>`:'<tr><td colspan="5" class="empty">Sin categorías.</td></tr>';
+  chartDonut('chCatInv',list.map(r=>({label:r.cat,value:r.inv})),{label:'Participación de cada categoría en el inventario'});
+  chartDonut('chCatVen',list.map(r=>({label:r.cat,value:r.ven})),{label:'Participación de cada categoría en las ventas'});
+}
+function renderInventoryCharts(){
+  const byCat={};let young=0,old=0;
+  state.inventory.forEach(p=>{
+    const v=(Number(p.costo)||0)*Math.max(0,stockInfo(p).current),c=p.categoria||'SIN CATEGORÍA';
+    byCat[c]=(byCat[c]||0)+v;
+    const d=daysSince(p.fechaCompra);if(d!==null&&d>90)old+=v;else young+=v;
+  });
+  chartDonut('chInvCat',Object.entries(byCat).map(([label,value])=>({label,value})),{label:'Inventario por categoría'});
+  chartDonut('chInvAge',[{label:'90 días o menos',value:young,color:CH_COLORS[0]},{label:'Más de 90 días',value:old,color:CH_COLORS[3]}],{label:'Antigüedad del inventario'});
+}
+function renderTaxChart(ingresos,util,gastos,imp,tope){
+  const el=$('chTax');if(!el)return;
+  const donutHost='<div id="chTaxDonut"></div>';
+  const pct=tope>0?Math.min(100,ingresos/tope*100):0;
+  el.innerHTML=`<div class="grid dashboard-grid"><div><h3 style="margin:0 0 8px">¿A dónde va la utilidad del año?</h3>${donutHost}</div><div><h3 style="margin:0 0 8px">Ingresos brutos vs tope de 1.400 UVT</h3><div class="hbars"><div class="row" style="grid-template-columns:1fr"><span class="bar" style="height:18px"><b style="width:${pct.toFixed(1)}%;background:${ingresos>=tope?CH_COLORS[3]:CH_COLORS[0]}"></b></span></div></div><div class="note" style="margin-top:6px">${esc(money(ingresos))} de ${esc(money(tope))} (${pct.toFixed(0)}%)</div></div></div>`;
+  chartDonut('chTaxDonut',[{label:'Gastos deducibles',value:Math.min(gastos,Math.max(util,0)),color:CH_COLORS[1]},{label:'Impuesto estimado',value:imp,color:CH_COLORS[3]},{label:'Te queda',value:Math.max(0,util-Math.min(gastos,Math.max(util,0))-imp),color:CH_COLORS[0]}],{label:'Distribución de la utilidad bruta del año'});
+}
+function renderOrdersCharts(){
+  const act=activeOrders();
+  const last=[...act].sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||String(a.id).localeCompare(String(b.id))).slice(-10);
+  chartBars('chRecent',last.map(o=>o.id.replace(/^.*-0*/,'#')||o.id),[{name:'Total',values:last.map(o=>orderTotal(o)),color:CH_COLORS[0]},{name:'Abonado',values:last.map(o=>paid(o)),color:CH_COLORS[2]}],{label:'Total y abonado de los últimos pedidos',h:190});
+  const low=state.inventory.map(p=>({p,...stockInfo(p)})).filter(x=>x.status!=='EN STOCK');
+  const el=$('chLow');
+  if(!low.length){el.innerHTML=emptyChart}
+  else{
+    const mx=Math.max(1,...low.map(x=>Math.max(0,x.current)));
+    el.innerHTML='<div class="hbars">'+low.slice(0,12).map(x=>`<div class="row"><span class="lbl" title="${esc(x.p.producto)}">${esc(x.p.producto)}</span><span class="bar"><b style="width:${(Math.max(0,x.current)/mx*100).toFixed(1)}%;background:${x.current<=0?CH_COLORS[3]:CH_COLORS[1]}"></b></span><span class="val">${Math.max(0,x.current)} u.</span></div>`).join('')+'</div>';
+  }
+}
+function renderClientsChart(){
+  const client=$('dashboardClient')?$('dashboardClient').value:'';
+  if(client){
+    const os=activeOrders().filter(o=>o.cliente===client).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||String(a.id).localeCompare(String(b.id)));
+    chartBars('chClients',os.map(o=>o.id.replace(/^.*-0*/,'#')||o.id),[{name:'Total',values:os.map(o=>orderTotal(o)),color:CH_COLORS[0]},{name:'Abonado',values:os.map(o=>paid(o)),color:CH_COLORS[2]}],{label:'Pedidos de '+client,h:190});
+  }else{
+    const by={};activeOrders().forEach(o=>{by[o.cliente]=(by[o.cliente]||0)+orderTotal(o)});
+    const top=Object.entries(by).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value).slice(0,10);
+    $('chClients').innerHTML=top.length?'<h3 style="margin:0 0 8px">Top 10 clientes por ventas</h3><div id="chClientsTop"></div>':emptyChart;
+    if(top.length)chartHBars('chClientsTop',top);
+  }
+}
+/* ===== Categorías (modal) ===== */
+let catListSorted=[];
+function catUsage(c){return state.inventory.filter(p=>(p.categoria||'')===c).length}
+function openCatModal(){renderCatModal();$('catNew').value='';$('catModal').classList.add('open')}
+function closeCatModal(){$('catModal').classList.remove('open')}
+function renderCatModal(){
+  catListSorted=[...state.categories].sort((a,b)=>a.localeCompare(b,'es'));
+  $('catList').innerHTML=catListSorted.length?catListSorted.map((c,i)=>`<tr><td><input id="catIn_${i}" value="${esc(c)}" maxlength="40" style="width:100%;padding:6px;border:1px solid var(--field-border);border-radius:6px;background:var(--field-bg);color:var(--ink);font:inherit"></td><td>${catUsage(c)}</td><td class="action-row"><button class="btn" onclick="renameCategory(${i})">Guardar</button><button class="btn danger" onclick="deleteCategory(${i})">Eliminar</button></td></tr>`).join(''):'<tr><td colspan="3" class="empty">No hay categorías.</td></tr>';
+}
+function addCategory(){
+  const name=$('catNew').value.trim().toUpperCase();
+  if(!name){alert('Escribe el nombre de la categoría.');return}
+  if(state.categories.includes(name)){alert('Esa categoría ya existe.');return}
+  state.categories.push(name);persist();$('catNew').value='';renderCatModal();refresh();
+}
+function renameCategory(i){
+  const old=catListSorted[i],name=($('catIn_'+i).value||'').trim().toUpperCase();
+  if(!name){alert('El nombre no puede estar vacío.');return}
+  if(name===old)return;
+  const exists=state.categories.includes(name);
+  if(exists&&!confirm(`«${name}» ya existe. ¿Fusionar «${old}» con «${name}»? Sus ${catUsage(old)} producto(s) pasarán a «${name}».`))return;
+  state.inventory.forEach(p=>{if((p.categoria||'')===old)p.categoria=name});
+  (state.purchases||[]).forEach(pu=>{if(pu.categoria===old)pu.categoria=name});
+  state.categories=exists?state.categories.filter(c=>c!==old):state.categories.map(c=>c===old?name:c);
+  persist();renderCatModal();refresh();
+}
+function deleteCategory(i){
+  const c=catListSorted[i],n=catUsage(c);
+  if(n>0){alert(`«${c}» tiene ${n} producto(s). Cámbiales la categoría, o renómbrala con el nombre de otra categoría para fusionarlas, y luego podrás eliminarla.`);return}
+  if(!confirm(`¿Eliminar la categoría «${c}»?`))return;
+  state.categories=state.categories.filter(x=>x!==c);persist();renderCatModal();refresh();
+}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal();
 </script>
 
@@ -2551,6 +2818,15 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
       <div class="field"><label>Precio de venta (el del sistema; solo cambia si lo editas)</label><input id="impAssignPrice" type="number" min="0"></div>
     </div>
     <div class="modal-actions"><button class="btn" onclick="cancelImportAssign()">Cancelar</button><button class="btn primary" onclick="confirmImportAssign()">Asignar</button></div>
+  </div>
+</div>
+<div id="catModal" class="modal-backdrop" onclick="if(event.target===this)closeCatModal()">
+  <div class="modal" style="width:min(600px,calc(100% - 30px))">
+    <h2>Categorías</h2>
+    <div class="note">Renombrar una categoría actualiza todos sus productos. Si la renombras con el nombre de otra existente, se fusionan. Solo se pueden eliminar categorías sin productos.</div>
+    <div class="toolbar" style="margin:10px 0"><input id="catNew" placeholder="Nueva categoría" maxlength="40" onkeydown="if(event.key==='Enter')addCategory()"><button class="btn primary" onclick="addCategory()">Agregar</button></div>
+    <div class="tablewrap" style="max-height:340px"><table><thead><tr><th>Categoría</th><th>Productos</th><th>Acciones</th></tr></thead><tbody id="catList"></tbody></table></div>
+    <div class="modal-actions"><button class="btn" onclick="closeCatModal()">Cerrar</button></div>
   </div>
 </div>
 <div id="exportModal" class="modal-backdrop" onclick="if(event.target===this)closeExportModal()">
