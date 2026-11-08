@@ -162,6 +162,17 @@ tbody tr:hover td{background:color-mix(in srgb,var(--primary) 7%,var(--card))}
 .app-footer a{color:var(--primary-text)}
 td.action-row{display:table-cell;white-space:nowrap}td.action-row .btn{margin-right:6px}td.action-row .btn:last-child{margin-right:0}
 .field input[type=date]{padding-inline:8px;font-size:13px}
+/* Celular: la cabecera nunca debe ser más ancha que la pantalla */
+header>.hdr-top,header>.hdr-bottom{min-width:0;max-width:100%}.hdr-bottom .nav-mobile{min-width:0;flex:1 1 0}.hdr-bottom .icon-group{flex:0 0 auto}
+html,body{max-width:100%}
+/* Móvil: nada debe ensanchar la página; las tablas largas se desplazan dentro de su panel */
+html,body{max-width:100%;overflow-x:clip}
+.grid>*,.dashboard-grid>*,.panel,.card{min-width:0}
+@media(max-width:1050px){.dashboard-grid{grid-template-columns:minmax(0,1fr)}}
+#recentOrders,#lowStock,#clientOrders,.panel .tablewrap{max-width:100%;overflow-x:auto}
+.hdr-bottom{flex-wrap:wrap}.hdr-bottom .nav-mobile{flex:1 1 180px}
+header,main,.app-footer{max-width:100%}
+@media(max-width:650px){.metric{font-size:22px;white-space:nowrap}.card{padding:14px}}body.device-mobile .metric{font-size:22px;white-space:nowrap}body.device-mobile .card{padding:14px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="https://apis.google.com/js/api.js"></script>
@@ -387,8 +398,6 @@ td.action-row{display:table-cell;white-space:nowrap}td.action-row .btn{margin-ri
       <div class="field"><label>Fuente Cuerpo</label><select id="invFontCuerpo"><option>Arial</option><option>Nunito</option><option>Montserrat</option><option>Perfect Lemonade</option><option>Sweetbliss Personal Use</option><option>Shortcake Strawberry</option><option>Mochibop</option></select></div>
     </div>
     <div class="quick" style="margin-top:14px"><button class="btn primary" onclick="saveInvoiceConfig()">Guardar datos de factura</button><button class="btn danger" onclick="clearInvoiceLogo()">Quitar logo</button><button class="btn danger" onclick="clearWatermark()">Quitar marca de agua</button></div>
-    <div class="note" style="margin-top:10px">La marca de agua se ajusta automáticamente al tamaño y márgenes de la hoja, conservando su proporción original, y se aplica con transparencia reducida para no interferir con la lectura de la factura.</div>
-    <div class="note" style="margin-top:6px">Nota técnica: Arial (sustituida por Inter), Nunito, Montserrat, Perfect Lemonade, Sweetbliss Personal Use y Shortcake Strawberry están incrustadas de verdad en el PDF a partir de los archivos que proporcionaste y se ven correctamente con tildes y ñ. "Mochibop" también está incrustada, pero muestra las tildes y la ñ sin su acento visual (limitación de diseño de esa fuente demo). Se retiraron "Comic Sans", "Century Gothic" y "Bubblegum Bliss" de la lista por no tener un archivo utilizable (sin archivo disponible, archivo de prueba con los números inutilizados, o sin soporte de tildes/ñ que cortaba el texto).</div>
   </div>
   <div class="panel" style="margin-top:14px">
     <h2>Categorías de productos</h2>
@@ -1181,6 +1190,7 @@ const DRIVE_CLIENT_ID='577413187819-72ieaitdj5mcgohg4s7n27q8gi1rqbrf.apps.google
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILENAME='gestor-live-tiktok-data.json';
 let driveTokenClient=null, driveAccessToken=null, driveFileId=null, gapiReady=false, silentAttempt=false;
+let driveLookupOk=false, driveLoadPromise=null, driveSaveChain=Promise.resolve(), driveDupes=0;
 let driveTokenExpiresAt=0, driveSilentRenewal=false, driveRenewPromise=null, driveRenewResolve=null, driveRenewTimeout=null, driveLastRetryAt=0;
 
 function initDrive(){
@@ -1260,13 +1270,24 @@ function driveConnect(){
   driveTokenClient.requestAccessToken({prompt:driveAccessToken?'':'consent'});
 }
 async function driveFindFile(){
-  const res=await gapi.client.drive.files.list({q:`name='${DRIVE_FILENAME}' and trashed=false`,fields:'files(id,name)',spaces:'drive'});
-  const files=res.result.files;
-  return files&&files.length?files[0].id:null;
+  // Siempre el archivo modificado más recientemente, para que todos tus dispositivos usen el mismo
+  const res=await gapi.client.drive.files.list({q:`name='${DRIVE_FILENAME}' and trashed=false`,orderBy:'modifiedTime desc',pageSize:50,fields:'files(id,name,modifiedTime)',spaces:'drive'});
+  const files=(res.result&&res.result.files)||[];
+  driveDupes=files.length;
+  return files.length?files[0].id:null;
 }
-async function driveLoadData(){
+function driveLoadData(){ // evita cargas simultáneas (reconexión automática + clic del usuario)
+  if(driveLoadPromise)return driveLoadPromise;
+  return driveLoadPromise=driveLoadDataRun().finally(()=>{driveLoadPromise=null});
+}
+async function driveLoadDataRun(){
   try{
-    driveFileId=await driveFindFile();
+    try{driveFileId=await driveFindFile();driveLookupOk=true}
+    catch(e){ // sin poder verificar si el archivo existe, no se escribe nada en Drive (así no se crean copias)
+      driveLookupOk=false;console.error(e);
+      $('driveStatus').textContent='No se pudo verificar tu archivo en Drive. No se guardará nada allí hasta reconectar.';
+      updateAutoSaveStatus('Guardado localmente — Drive sin verificar');return;
+    }
     if(!driveFileId){await driveSaveData();$('driveStatus').textContent='Conectado — archivo creado en Drive';return}
     const res=await gapi.client.drive.files.get({fileId:driveFileId,alt:'media'});
     let data=res.result;
@@ -1291,13 +1312,20 @@ async function driveLoadData(){
     if(!state.kits)state.kits=[];
     localStorage.setItem(KEY,JSON.stringify(state));
     refresh();loadInvoiceConfig();
-    $('driveStatus').textContent='Datos cargados desde Google Drive';
+    $('driveStatus').textContent='Datos cargados desde Google Drive'+(driveDupes>1?` — ⚠ hay ${driveDupes} archivos de guardado en tu Drive; se usa el más reciente`:'');
+    if(driveDupes>1&&!window._driveDupeWarned){window._driveDupeWarned=true;setTimeout(()=>alert(`Aviso: tu Google Drive tiene ${driveDupes} archivos llamados "${DRIVE_FILENAME}" (copias creadas antes de esta corrección). La app usa el MÁS RECIENTE y ya no creará más.\n\nCuando confirmes que tus datos están completos, entra a drive.google.com y elimina las copias más antiguas para evitar confusiones.`),300)}
   }catch(err){console.error(err);alert('Error al cargar datos desde Google Drive.');}
 }
-async function driveSaveData(retried){
+function driveSaveData(retried){ // un guardado a la vez, en orden
+  driveSaveChain=driveSaveChain.catch(()=>{}).then(()=>driveSaveRun(retried));
+  return driveSaveChain;
+}
+async function driveSaveRun(retried){
   if(!driveAccessToken)return false;
+  if(!driveLookupOk)return false; // nunca escribir ni crear antes de verificar si el archivo ya existe
   if(!(await driveEnsureToken()))return false; // renueva el permiso en segundo plano si está por vencer
   try{
+    if(!driveFileId)driveFileId=await driveFindFile(); // última verificación antes de crear uno nuevo
     const content=JSON.stringify(state);
     const metadata={name:DRIVE_FILENAME,mimeType:'application/json'};
     const boundary='gestorlivetiktok_boundary';
@@ -1313,7 +1341,7 @@ async function driveSaveData(retried){
   }catch(err){
     const code=err&&(err.status||(err.result&&err.result.error&&err.result.error.code));
     if(code===401&&!retried){ // permiso vencido: renovar y reintentar una vez
-      if(await renewDriveToken())return await driveSaveData(true);
+      if(await renewDriveToken())return await driveSaveRun(true);
       return false;
     }
     console.error(err);
