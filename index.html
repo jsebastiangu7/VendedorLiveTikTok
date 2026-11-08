@@ -565,7 +565,7 @@ function renderInventory(){
   $('invBody').innerHTML=arr.length?arr.map(p=>{
     const days=daysSince(p.fechaCompra);
     const diasTxt=days===null?'—':(days+' d'+(days>90?' ⚠':''));
-    return `<tr><td>${esc(p.producto)}</td><td>${esc(p.codigo||'—')}</td><td>${esc(p.categoria)}</td><td>${money(p.costo)}</td><td>${money(p.envio)}</td><td>${p.stock}</td><td>${p.sold}</td><td>${p.current}</td><td>${pill(p.status)}</td><td>${money(p.precio)}</td><td>${margenPct(p).toFixed(1)}%</td><td>${esc(p.fechaCompra||'—')}</td><td>${diasTxt}</td><td class="action-row"><button class="btn" onclick="openEditProduct('${js(p.producto)}')">Modificar</button><button class="btn danger" onclick="deleteProduct('${js(p.producto)}')">Eliminar</button></td></tr>`;
+    return `<tr><td>${esc(p.producto)}</td><td>${esc(p.codigo||'—')}</td><td>${esc(p.categoria)}</td><td>${money(p.costo)}</td><td>${money(p.envio)}</td><td>${p.stock}</td><td>${p.sold}</td><td>${p.current}</td><td>${pill(p.status)}</td><td>${money(p.precio)}</td><td>${margenPct(p).toFixed(1)}%</td><td>${esc(p.fechaCompra||'—')}</td><td>${diasTxt}</td><td class="action-row"><button class="btn" onclick="openProductClients('${js(p.producto)}')">Clientes</button><button class="btn" onclick="openEditProduct('${js(p.producto)}')">Modificar</button><button class="btn danger" onclick="deleteProduct('${js(p.producto)}')">Eliminar</button></td></tr>`;
   }).join(''):'<tr><td colspan="14" class="empty">No hay productos en el inventario.</td></tr>';
 }
 function deleteProduct(name){
@@ -2736,10 +2736,31 @@ function deleteCategory(i){
   if(!confirm(`¿Eliminar la categoría «${c}»?`))return;
   state.categories=state.categories.filter(x=>x!==c);persist();renderCatModal();refresh();
 }
+/* ===== Clientes que han adquirido un producto ===== */
+function productBuyers(name){
+  const rows=[];
+  state.orders.filter(o=>o.estado!=='Cancelado').forEach(o=>(o.lineas||[]).forEach(l=>{
+    const fecha=String(l.fecha||o.fecha||''),q=Number(l.cantidad)||0;
+    if(l.producto===name)rows.push({cliente:o.cliente,fecha,pedido:o.id,qty:q,precio:Number(l.precio)||0,origen:'Directo'});
+    else{
+      const kit=(state.kits||[]).find(k=>k.nombre===l.producto),comp=kit&&(kit.componentes||[]).find(c=>c.producto===name);
+      if(comp)rows.push({cliente:o.cliente,fecha,pedido:o.id,qty:q*(Number(comp.cantidad)||0),precio:null,origen:'En kit: '+kit.nombre});
+    }
+  }));
+  return rows.sort((a,b)=>b.fecha.localeCompare(a.fecha)||String(b.pedido).localeCompare(String(a.pedido)));
+}
+function openProductClients(name){
+  const rows=productBuyers(name),clients=new Set(rows.map(r=>r.cliente)),units=rows.reduce((a,r)=>a+r.qty,0);
+  $('pcTitle').textContent='Clientes de «'+name+'»';
+  $('pcSummary').textContent=rows.length?`${clients.size} cliente(s) · ${units} unidad(es) en ${rows.length} compra(s). No incluye pedidos cancelados.`:'';
+  $('pcBody').innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.cliente)}</td><td>${esc(r.fecha)}</td><td>${esc(r.pedido)}</td><td>${r.qty}</td><td>${r.precio===null?'—':money(r.precio)}</td><td>${esc(r.origen)}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Ningún cliente ha adquirido este producto todavía.</td></tr>';
+  $('prodClientsModal').classList.add('open');
+}
+function closeProductClients(){$('prodClientsModal').classList.remove('open')}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal();
 </script>
 
-<div id="productModal" class="modal-backdrop" onclick="if(event.target===this)closeProductModal()">
+<div id="productModal" class="modal-backdrop">
   <div class="modal">
     <h2>Agregar producto o adicionar stock</h2>
     <div class="formgrid">
@@ -2759,7 +2780,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
   </div>
 </div>
 
-<div id="editProductModal" class="modal-backdrop" onclick="if(event.target===this)closeEditProduct()">
+<div id="editProductModal" class="modal-backdrop">
   <div class="modal">
     <h2>Modificar producto</h2>
     <input type="hidden" id="editProductOriginalName">
@@ -2777,7 +2798,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
   </div>
 </div>
 
-<div id="kitModal" class="modal-backdrop" onclick="if(event.target===this)closeKitModal()">
+<div id="kitModal" class="modal-backdrop">
   <div class="modal" style="width:min(760px,calc(100% - 30px))">
     <h2>Kits</h2>
     <div class="formgrid" style="grid-template-columns:1fr 1.4fr">
@@ -2798,7 +2819,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
   </div>
 </div>
 
-<div id="importModal" class="modal-backdrop" onclick="if(event.target===this)closeImportModal()">
+<div id="importModal" class="modal-backdrop">
   <div class="modal" style="width:min(1000px,calc(100% - 30px))">
     <h2>Revisar archivo de inventario</h2>
     <div class="note">Todos los campos son editables. Nada se aplica hasta que confirmes. La <strong>Cantidad</strong> se suma al stock actual. Los productos se identifican por código de barras o, si no hay, por nombre exacto; si ya existen se actualizan costo, envío, categoría y fecha de compra con los valores del archivo; el precio de venta del sistema no se modifica (solo si lo editas en el modal de asignación).</div>
@@ -2807,7 +2828,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <div class="modal-actions"><button class="btn" onclick="closeImportModal()">Cancelar</button><button class="btn primary" id="importConfirmBtn" onclick="confirmInventoryImport()">Confirmar e importar</button></div>
   </div>
 </div>
-<div id="importAssignModal" class="modal-backdrop" style="z-index:150" onclick="if(event.target===this)cancelImportAssign()">
+<div id="importAssignModal" class="modal-backdrop" style="z-index:150">
   <div class="modal" style="width:min(520px,calc(100% - 30px))">
     <h2>Asignar a producto existente</h2>
     <div class="note" id="impAssignRow"></div>
@@ -2820,7 +2841,15 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <div class="modal-actions"><button class="btn" onclick="cancelImportAssign()">Cancelar</button><button class="btn primary" onclick="confirmImportAssign()">Asignar</button></div>
   </div>
 </div>
-<div id="catModal" class="modal-backdrop" onclick="if(event.target===this)closeCatModal()">
+<div id="prodClientsModal" class="modal-backdrop">
+  <div class="modal" style="width:min(720px,calc(100% - 30px))">
+    <h2 id="pcTitle">Clientes del producto</h2>
+    <div class="note" id="pcSummary" style="margin-bottom:10px"></div>
+    <div class="tablewrap" style="max-height:380px"><table><thead><tr><th>Cliente</th><th>Fecha</th><th>Pedido</th><th>Cantidad</th><th>Precio</th><th>Origen</th></tr></thead><tbody id="pcBody"></tbody></table></div>
+    <div class="modal-actions"><button class="btn" onclick="closeProductClients()">Cerrar</button></div>
+  </div>
+</div>
+<div id="catModal" class="modal-backdrop">
   <div class="modal" style="width:min(600px,calc(100% - 30px))">
     <h2>Categorías</h2>
     <div class="note">Renombrar una categoría actualiza todos sus productos. Si la renombras con el nombre de otra existente, se fusionan. Solo se pueden eliminar categorías sin productos.</div>
@@ -2829,7 +2858,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <div class="modal-actions"><button class="btn" onclick="closeCatModal()">Cerrar</button></div>
   </div>
 </div>
-<div id="exportModal" class="modal-backdrop" onclick="if(event.target===this)closeExportModal()">
+<div id="exportModal" class="modal-backdrop">
   <div class="modal" style="width:min(460px,calc(100% - 30px))">
     <h2>Exportar respaldo</h2>
     <div class="note">Recomendado: protégelo con una contraseña (se cifra con AES-256 en tu dispositivo). Si la olvidas, el respaldo no se puede recuperar. Déjalo vacío para exportar sin cifrar.</div>
@@ -2840,7 +2869,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <div class="modal-actions"><button class="btn" onclick="closeExportModal()">Cancelar</button><button class="btn primary" onclick="doExportBackup()">Descargar respaldo</button></div>
   </div>
 </div>
-<div id="importPassModal" class="modal-backdrop" onclick="if(event.target===this)closeImportPass()">
+<div id="importPassModal" class="modal-backdrop">
   <div class="modal" style="width:min(420px,calc(100% - 30px))">
     <h2>Respaldo cifrado</h2>
     <div class="note">Escribe la contraseña con la que se cifró este respaldo.</div>
@@ -2863,7 +2892,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
   </div>
 </div>
 
-<div id="scanResultModal" class="modal-backdrop" onclick="if(event.target===this)closeScanResult()">
+<div id="scanResultModal" class="modal-backdrop">
   <div class="modal">
     <h2 id="scanResultTitle">Código escaneado</h2>
     <input type="hidden" id="scanResultCode">
@@ -2879,7 +2908,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     </div>
   </div>
 </div>
-<div id="vpModal" class="modal-backdrop" onclick="if(event.target===this)vpCancel()">
+<div id="vpModal" class="modal-backdrop">
   <div class="modal" style="width:min(560px,calc(100% - 30px))">
     <h2 id="vpTitle">Seleccionar clientes</h2>
     <div class="note" id="vpInfo"></div>
@@ -2889,7 +2918,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <div class="modal-actions"><button class="btn" onclick="vpCancel()">Cancelar</button><button class="btn primary" id="vpAccept" onclick="vpAccept()">Aceptar</button></div>
   </div>
 </div>
-<div id="payEditModal" class="modal-backdrop" onclick="if(event.target===this)closePayEdit()">
+<div id="payEditModal" class="modal-backdrop">
   <div class="modal">
     <h2>Modificar abono</h2>
     <input type="hidden" id="payEditId">
@@ -2905,7 +2934,7 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
   </div>
 </div>
 
-<div id="payClientModal" class="modal-backdrop" onclick="if(event.target===this)closeClientPayModal()">
+<div id="payClientModal" class="modal-backdrop">
   <div class="modal" style="width:min(780px,calc(100% - 30px))">
     <h2 id="payClientTitle">Abonos del cliente</h2>
     <div class="note">Escribe el abono de cada pedido (deja en blanco los que no recibirán pago). La fecha, el medio, la referencia y la nota aplican a todos los abonos de esta pantalla.</div>
