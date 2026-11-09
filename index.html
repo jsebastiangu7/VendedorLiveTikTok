@@ -173,6 +173,12 @@ html,body{max-width:100%;overflow-x:clip}
 .hdr-bottom{flex-wrap:wrap}.hdr-bottom .nav-mobile{flex:1 1 180px}
 header,main,.app-footer{max-width:100%}
 @media(max-width:650px){.metric{font-size:22px;white-space:nowrap}.card{padding:14px}}body.device-mobile .metric{font-size:22px;white-space:nowrap}body.device-mobile .card{padding:14px}
+.rec-card{border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px;background:var(--card)}
+.rec-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.rec-inc{font-weight:800;display:flex;gap:6px;align-items:center}
+.rec-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:8px}
+.rin{width:100%;min-width:90px;padding:6px 8px;border:1px solid var(--field-border);border-radius:8px;background:var(--field-bg);color:var(--ink);font:inherit;font-size:13px}
+.rin:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="https://apis.google.com/js/api.js"></script>
@@ -346,7 +352,7 @@ header,main,.app-footer{max-width:100%}
 
 <section id="pedidos" class="view">
   <h1>Pedidos</h1><div class="subtitle">Busca, edita pedidos y registra nuevos abonos.</div>
-  <div class="toolbar"><input id="orderSearch" placeholder="Buscar pedido o cliente" oninput="renderOrders()"><select id="orderFilter" onchange="renderOrders()"><option value="">Todos</option><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select><button class="btn" onclick="exportOrdersExcel()">⬇ Descargar Excel</button></div>
+  <div class="toolbar"><input id="orderSearch" placeholder="Buscar pedido o cliente" oninput="renderOrders()"><select id="orderFilter" onchange="renderOrders()"><option value="">Todos</option><option>Pendiente</option><option>Apartado</option><option>Pagado</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select><button class="btn" onclick="$('invoiceRecoverFile').click()">📄 Recuperar pedidos desde facturas (PDF)</button><input id="invoiceRecoverFile" type="file" accept=".pdf,application/pdf" multiple style="display:none" onchange="handleInvoiceRecover(event)"><button class="btn" onclick="exportOrdersExcel()">⬇ Descargar Excel</button></div>
   <div class="tablewrap"><table><thead id="ordersHead"></thead><tbody id="ordersBody"></tbody></table></div>
 </section>
 
@@ -1184,6 +1190,10 @@ function generateInvoice(orderId){
   setBodyFont('italic');doc.setFontSize(8.5);doc.setTextColor(...muted);
   doc.text(bt(cfg.mensaje||''),105,pageHeight-12,{align:'center'});
 
+  try{ // datos exactos del pedido dentro del PDF, para poder recuperarlo sin errores si algún día se pierde
+    const payload={v:1,o:{id:o.id,cliente:o.cliente,fecha:o.fecha,estado:o.estado,notas:o.notas||'',lineas:lineas.map(l=>({producto:l.producto,cantidad:l.cantidad,precio:l.precio,fecha:l.fecha||o.fecha||''}))},c:{nombre:cliente.nombre||o.cliente,telefono:cliente.telefono||'',tiktok:cliente.tiktok||'',direccion:cliente.direccion||''},p:pagos.map(pg=>({fecha:pg.fecha,medio:pg.medio,referencia:pg.referencia||'',nota:payNote(pg),valor:Number(pg.valor)||0}))};
+    doc.setProperties({title:'Factura '+o.id,subject:'Administrador Emprendedor',keywords:'AEDATA1:'+btoa(unescape(encodeURIComponent(JSON.stringify(payload))))});
+  }catch(e){console.error('metadatos de factura',e)}
   doc.save(`Factura_${o.id}.pdf`);
 }
 const DRIVE_CLIENT_ID='577413187819-72ieaitdj5mcgohg4s7n27q8gi1rqbrf.apps.googleusercontent.com';
@@ -2871,6 +2881,266 @@ function openProductClients(name){
   $('prodClientsModal').classList.add('open');
 }
 function closeProductClients(){$('prodClientsModal').classList.remove('open')}
+/* ===== Recuperar pedidos desde facturas en PDF ===== */
+const PDFJS_LIB={
+  url:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+  sri:'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e',
+  worker:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+  workerSri:'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2'
+};
+let pdfJsPromise=null,recRecs=[],recErrors=[];
+function loadScriptSri(url,sri){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=url;s.integrity=sri;s.crossOrigin='anonymous';s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar '+url));document.head.appendChild(s)})}
+function loadPdfJs(){ // se carga solo cuando se usa; ambos archivos verificados con SRI; sin Web Worker (se ejecuta en la página)
+  if(window.pdfjsLib&&window.pdfjsWorker)return Promise.resolve();
+  if(!pdfJsPromise)pdfJsPromise=loadScriptSri(PDFJS_LIB.url,PDFJS_LIB.sri).then(()=>loadScriptSri(PDFJS_LIB.worker,PDFJS_LIB.workerSri)).then(()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_LIB.worker}).catch(e=>{pdfJsPromise=null;throw e});
+  return pdfJsPromise;
+}
+const normKey=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const recIsDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''));
+const recIsMoney=s=>/^\$\s*-?[\d.]+(,\d+)?$/.test(String(s||'').replace(/ /g,' ').trim());
+function recMoney(s){const t=String(s).replace(/[$\s ]/g,'');if(!/^-?[\d.]+(,\d+)?$/.test(t))return null;const v=Number(t.replace(/\./g,'').replace(',','.'));return Number.isFinite(v)?v:null}
+async function recExtract(buf){
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf),isEvalSupported:false,disableFontFace:true,useSystemFonts:false}).promise;
+  if(pdf.numPages>30)throw new Error('el PDF tiene demasiadas páginas para ser una factura');
+  let kw='';try{const m=await pdf.getMetadata();kw=(m&&m.info&&m.info.Keywords)||''}catch(e){}
+  const rows=[];
+  for(let n=1;n<=pdf.numPages;n++){
+    const pg=await pdf.getPage(n),tc=await pg.getTextContent();
+    const its=tc.items.filter(i=>i.str&&i.str.trim()).map(i=>({s:i.str.trim(),x:i.transform[4],y:i.transform[5]}));
+    its.sort((a,b)=>b.y-a.y||a.x-b.x);
+    let cur=null;
+    its.forEach(it=>{if(cur&&Math.abs(cur.y-it.y)<=2.5)cur.items.push(it);else{cur={y:it.y,items:[it]};rows.push(cur)}});
+  }
+  rows.forEach(r=>r.items.sort((a,b)=>a.x-b.x));
+  return {rows,kw};
+}
+// Lee la estructura fija de la factura generada por esta app
+function parseInvoiceRows(rows){
+  const r={id:'',fecha:'',estado:'',cliente:'',tel:'',ciudad:'',dir:'',notas:'',lineas:[],pagos:[],tot:{},factura:false};
+  let sec='head',hx=[45,113,187,283];const cl=[],noteLines=[];
+  for(const row of rows){
+    if(row.y<50)continue; // pie de página
+    const it=row.items,t=it.map(i=>i.s).join(' '),tk=normKey(t); // etiquetas sin tildes ni mayúsculas (algunas fuentes alteran las tildes al extraer el texto)
+    if(sec==='head'){
+      for(const i of it){let m;const k=normKey(i.s);
+        if(k==='factura')r.factura=true;
+        else if((m=i.s.match(/^No\.\s*(.+)$/)))r.id=m[1].trim();
+        else if((m=i.s.match(/^Fecha:\s*(\d{4}-\d{2}-\d{2})/)))r.fecha=m[1];
+        else if(k.startsWith('estado:'))r.estado=i.s.slice(i.s.indexOf(':')+1).trim();
+        else if(k==='cliente')sec='client';
+      }
+      continue;
+    }
+    if(sec==='client'){
+      if(normKey(it[0].s)==='producto'&&it.some(i=>normKey(i.s)==='total')){sec='lines';continue}
+      cl.push(t);continue;
+    }
+    if(sec==='lines'&&tk.startsWith('total pedido:'))sec='totals';
+    if(sec==='lines'){
+      if(normKey(it[0].s)==='producto')continue; // encabezado repetido en otras páginas
+      const n=it.length;
+      if(n>=4&&recIsMoney(it[n-1].s)&&recIsMoney(it[n-2].s)&&/^\d+$/.test(it[n-3].s)){
+        const hasDate=recIsDate(it[n-4].s),prodEnd=hasDate?n-4:n-3;
+        if(prodEnd>=1){r.lineas.push({producto:it.slice(0,prodEnd).map(i=>i.s).join(' '),fecha:hasDate?it[n-4].s:'',cantidad:parseInt(it[n-3].s,10),precio:recMoney(it[n-2].s),sub:recMoney(it[n-1].s)});continue}
+      }
+      if(n===1&&r.lineas.length)r.lineas[r.lineas.length-1].producto+=' '+it[0].s; // nombre partido en dos líneas
+      continue;
+    }
+    if(sec==='totals'){
+      const v=recMoney(it[it.length-1].s);
+      if(tk.startsWith('total pedido:'))r.tot.pedido=v;
+      else if(tk.startsWith('total abonado:'))r.tot.abonado=v;
+      else if(tk.startsWith('saldo:'))r.tot.saldo=v;
+      else if(tk==='historial de abonos')sec='pay';
+      continue;
+    }
+    if(sec==='pay'){
+      if(tk==='notas'){sec='notes';continue}
+      if(tk.startsWith('sin abonos'))continue;
+      if(normKey(it[0].s)==='fecha'&&it.some(i=>normKey(i.s)==='valor')){hx=it.slice(0,4).map(i=>i.x);continue}
+      if(recIsDate(it[0].s)&&it.length>=3&&recIsMoney(it[it.length-1].s)){
+        const cols=['','',''];
+        it.slice(1,-1).forEach(i=>{let c=0;for(let k=1;k<hx.length;k++)if(i.x>=hx[k]-4)c=k-1;cols[c]=(cols[c]?cols[c]+' ':'')+i.s});
+        r.pagos.push({fecha:it[0].s,medio:cols[0],referencia:cols[1]==='—'?'':cols[1],nota:cols[2],valor:recMoney(it[it.length-1].s)});continue;
+      }
+      if(r.pagos.length&&it.length<=2){const p=r.pagos[r.pagos.length-1];p.nota+=(p.nota?' ':'')+t}
+      continue;
+    }
+    if(sec==='notes')noteLines.push(t);
+  }
+  r.cliente=cl[0]||'';
+  const dirs=[];
+  cl.slice(1).forEach(l=>{if(normKey(l).startsWith('ciudad:'))r.ciudad=l.slice(l.indexOf(':')+1).trim();else if(/^[\d\s+()\-]{6,}$/.test(l))r.tel=l.trim();else dirs.push(l)});
+  r.dir=dirs.join(', ');
+  r.notas=noteLines.join(' ');
+  return r;
+}
+// Todo dato leído de un PDF es "externo": se limpia, se limita y se convierte a tipos simples
+function recClean(raw,source,file){
+  const str=(v,n)=>String(v==null?'':v).replace(/[\u0000-\u001f]/g,' ').trim().slice(0,n||200);
+  const num=(v,lo,hi)=>{v=Number(v);return Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):0};
+  const date=v=>recIsDate(v)?String(v):'';
+  const estados=['Pendiente','Apartado','Pagado','Enviado','Entregado','Cancelado'];
+  const rec={file:str(file,120),source,include:true,id:str(raw.id,40),fecha:date(raw.fecha),estado:estados.find(e=>normKey(e)===normKey(raw.estado))||'Pendiente',
+    cliente:str(raw.cliente,120),tel:str(raw.tel,40),ciudad:str(raw.ciudad,80),dir:str(raw.dir,200),notas:str(raw.notas,500),
+    lineas:(Array.isArray(raw.lineas)?raw.lineas:[]).slice(0,300).map(l=>({producto:str(l.producto,160),fecha:date(l.fecha),cantidad:Math.round(num(l.cantidad,0,100000)),precio:num(l.precio,0,1e9),sub:l.sub==null?null:num(l.sub,0,1e12)})),
+    pagos:(Array.isArray(raw.pagos)?raw.pagos:[]).slice(0,300).map(p=>({fecha:date(p.fecha),medio:PAY_METHODS.find(m=>normKey(m)===normKey(p.medio))||str(p.medio,40)||'Transferencia',referencia:str(p.referencia,80),nota:str(p.nota,300),valor:num(p.valor,0,1e12)})),
+    tot:{pedido:raw.tot&&raw.tot.pedido!=null?num(raw.tot.pedido,0,1e12):null,abonado:raw.tot&&raw.tot.abonado!=null?num(raw.tot.abonado,0,1e12):null},warns:[]};
+  if(!rec.fecha)rec.warns.push('No se pudo leer la fecha del pedido.');
+  if(!rec.lineas.length)rec.warns.push('No se pudieron leer los productos.');
+  if(rec.lineas.some(l=>!l.cantidad||l.precio===null))rec.warns.push('Hay líneas con cantidad o precio ilegible.');
+  const sum=rec.lineas.reduce((a,l)=>a+l.cantidad*l.precio,0);
+  if(rec.tot.pedido!=null&&Math.round(sum)!==Math.round(rec.tot.pedido))rec.warns.push(`La suma de los productos (${money(sum)}) no coincide con el total de la factura (${money(rec.tot.pedido)}).`);
+  const ps=rec.pagos.reduce((a,p)=>a+p.valor,0);
+  if(rec.tot.abonado!=null&&Math.round(ps)!==Math.round(rec.tot.abonado))rec.warns.push(`La suma de los abonos (${money(ps)}) no coincide con el total abonado de la factura (${money(rec.tot.abonado)}).`);
+  return rec;
+}
+async function recParsePdf(buf,fileName){
+  const {rows,kw}=await recExtract(buf);
+  if(kw.startsWith('AEDATA1:')){ // facturas nuevas llevan los datos exactos incrustados
+    try{
+      const d=JSON.parse(decodeURIComponent(escape(atob(kw.slice(8)))));
+      if(d&&d.o&&d.o.id)return recClean({id:d.o.id,fecha:d.o.fecha,estado:d.o.estado,cliente:d.o.cliente,notas:d.o.notas,lineas:d.o.lineas,pagos:d.p,tel:d.c&&d.c.telefono,ciudad:d.c&&d.c.tiktok,dir:d.c&&d.c.direccion},'incrustado',fileName);
+    }catch(e){/* si falla, se lee el texto */}
+  }
+  const r=parseInvoiceRows(rows);
+  if(!r.factura||!r.id)throw new Error('no parece una factura generada por esta app');
+  return recClean(r,'texto',fileName);
+}
+function recPostProcess(){
+  const seen=new Set();
+  recRecs.forEach(r=>{
+    const c=state.clients.find(x=>x.nombre===r.cliente)||state.clients.find(x=>normKey(x.nombre)===normKey(r.cliente));
+    if(c)r.cliente=c.nombre; // la factura pierde la ñ: se usa el nombre ya guardado
+    const canon=n=>{const all=[...state.inventory.map(p=>p.producto),...(state.kits||[]).map(k=>k.nombre)];return all.find(x=>x===n)||all.find(x=>normKey(x)===normKey(n))||n};
+    r.lineas.forEach(l=>{l.producto=canon(l.producto)});
+    const dup=state.orders.some(o=>o.id===r.id)||seen.has(r.id);
+    if(dup)r.include=false;
+    seen.add(r.id);
+  });
+}
+function openRecoverModal(){
+  $('recStatus').textContent='Leyendo facturas…';$('recList').innerHTML='';$('recErrors').innerHTML='';$('recSummary').textContent='';
+  $('recClients').innerHTML=state.clients.map(c=>`<option value="${esc(c.nombre)}">`).join('');
+  $('recProducts').innerHTML=[...state.inventory.map(p=>p.producto),...(state.kits||[]).map(k=>k.nombre)].map(n=>`<option value="${esc(n)}">`).join('');
+  $('recConfirmBtn').disabled=true;$('recoverModal').classList.add('open');
+}
+function closeRecoverModal(){$('recoverModal').classList.remove('open');recRecs=[];recErrors=[];$('recList').innerHTML=''}
+async function handleInvoiceRecover(ev){
+  const files=[...ev.target.files];ev.target.value='';
+  if(!files.length)return;
+  if(files.length>200){alert('Máximo 200 facturas por carga.');return}
+  for(const f of files)if(!checkFile(f,{maxMB:8,exts:['pdf'],label:f.name}))return;
+  openRecoverModal();
+  try{await loadPdfJs()}catch(e){console.error(e);closeRecoverModal();alert('No se pudo cargar el lector de PDF. Revisa tu conexión a internet e inténtalo de nuevo.');return}
+  recRecs=[];recErrors=[];
+  for(let k=0;k<files.length;k++){
+    $('recStatus').textContent=`Leyendo ${k+1} de ${files.length}…`;
+    try{
+      const buf=await files[k].arrayBuffer();
+      if(String.fromCharCode(...new Uint8Array(buf,0,5))!=='%PDF-')throw new Error('no es un PDF válido');
+      recRecs.push(await recParsePdf(buf,files[k].name));
+    }catch(e){console.error(e);recErrors.push(`${files[k].name}: ${e.message||e}`)}
+  }
+  recPostProcess();recRender();
+}
+function recDupMsg(i){
+  const r=recRecs[i],id=r.id.trim();
+  if(!id)return 'Falta el número de pedido';
+  if(state.orders.some(o=>o.id===id))return 'Ese número ya existe en el sistema';
+  if(recRecs.some((x,j)=>j<i&&x.include&&x.id.trim()===id))return 'Repetido en esta carga';
+  return '';
+}
+function recTotals(r){const t=r.lineas.reduce((a,l)=>a+(Number(l.cantidad)||0)*(Number(l.precio)||0),0),p=r.pagos.reduce((a,x)=>a+(Number(x.valor)||0),0);return {t,p}}
+function recChips(i){
+  const r=recRecs[i],chips=[],dm=recDupMsg(i);
+  if(dm)chips.push(`<span class="pill danger">${esc(dm)}</span>`);
+  chips.push(state.clients.some(c=>c.nombre===r.cliente.trim())?'<span class="pill ok">Cliente existente</span>':'<span class="pill warn">Cliente nuevo: se creará</span>');
+  const known=new Set([...state.inventory.map(p=>p.producto),...(state.kits||[]).map(k=>k.nombre)]);
+  const unk=r.lineas.filter(l=>!known.has(l.producto)).length;
+  if(unk)chips.push(`<span class="pill warn">${unk} producto(s) no están en el inventario: no descontarán stock</span>`);
+  r.warns.forEach(w=>chips.push(`<span class="pill warn">${esc(w)}</span>`));
+  const {t,p}=recTotals(r);
+  chips.push(`<span class="note">Total ${esc(money(t))} · Abonado ${esc(money(p))} · Saldo ${esc(money(Math.max(0,t-p)))}</span>`);
+  return chips.join(' ');
+}
+function recLineRow(i,j){
+  const l=recRecs[i].lineas[j];
+  return `<tr><td><input class="rin" list="recProducts" value="${esc(l.producto)}" oninput="recSetLine(${i},${j},'producto',this.value)"></td><td><input class="rin" type="date" value="${esc(l.fecha)}" oninput="recSetLine(${i},${j},'fecha',this.value)"></td><td><input class="rin" type="number" min="1" step="1" style="width:70px" value="${l.cantidad}" oninput="recSetLine(${i},${j},'cantidad',this.value)"></td><td><input class="rin" type="number" min="0" style="width:110px" value="${l.precio}" oninput="recSetLine(${i},${j},'precio',this.value)"></td><td><button class="btn danger" onclick="recDelLine(${i},${j})">✕</button></td></tr>`;
+}
+function recPayRow(i,j){
+  const p=recRecs[i].pagos[j];
+  return `<tr><td><input class="rin" type="date" value="${esc(p.fecha)}" oninput="recSetPay(${i},${j},'fecha',this.value)"></td><td><select class="rin" onchange="recSetPay(${i},${j},'medio',this.value)">${PAY_METHODS.concat(PAY_METHODS.includes(p.medio)?[]:[p.medio]).map(m=>`<option${m===p.medio?' selected':''}>${esc(m)}</option>`).join('')}</select></td><td><input class="rin" value="${esc(p.referencia)}" oninput="recSetPay(${i},${j},'referencia',this.value)"></td><td><input class="rin" value="${esc(p.nota)}" oninput="recSetPay(${i},${j},'nota',this.value)"></td><td><input class="rin" type="number" min="0" style="width:110px" value="${p.valor}" oninput="recSetPay(${i},${j},'valor',this.value)"></td><td><button class="btn danger" onclick="recDelPay(${i},${j})">✕</button></td></tr>`;
+}
+function recCardHtml(i){
+  const r=recRecs[i];
+  return `<div class="rec-head"><label class="rec-inc"><input type="checkbox" ${r.include?'checked':''} onchange="recSet(${i},'include',this.checked)"> Recuperar</label><span class="note">${esc(r.file)} · ${r.source==='incrustado'?'datos exactos guardados en la factura':'leído del texto de la factura (revisa los datos)'}</span></div>
+  <div class="rec-chips" id="recChips_${i}">${recChips(i)}</div>
+  <div class="rec-grid">
+    <div class="field"><label>No. pedido</label><input value="${esc(r.id)}" oninput="recSet(${i},'id',this.value)"></div>
+    <div class="field"><label>Fecha</label><input type="date" value="${esc(r.fecha)}" oninput="recSet(${i},'fecha',this.value)"></div>
+    <div class="field"><label>Estado</label><select onchange="recSet(${i},'estado',this.value)">${['Pendiente','Apartado','Pagado','Enviado','Entregado','Cancelado'].map(e=>`<option${e===r.estado?' selected':''}>${e}</option>`).join('')}</select></div>
+    <div class="field"><label>Cliente</label><input list="recClients" value="${esc(r.cliente)}" oninput="recSet(${i},'cliente',this.value)"></div>
+    <div class="field" style="grid-column:1/-1"><label>Notas del pedido</label><input value="${esc(r.notas)}" oninput="recSet(${i},'notas',this.value)"></div>
+  </div>
+  <div class="rec-grid" id="recNewClient_${i}" style="display:${state.clients.some(c=>c.nombre===r.cliente.trim())?'none':'grid'}">
+    <div class="field"><label>Teléfono (cliente nuevo)</label><input value="${esc(r.tel)}" oninput="recSet(${i},'tel',this.value)"></div>
+    <div class="field"><label>Ciudad</label><input value="${esc(r.ciudad)}" oninput="recSet(${i},'ciudad',this.value)"></div>
+    <div class="field"><label>Dirección</label><input value="${esc(r.dir)}" oninput="recSet(${i},'dir',this.value)"></div>
+  </div>
+  <h3 style="margin:12px 0 6px">Productos</h3>
+  <div class="tablewrap"><table><thead><tr><th>Producto</th><th>Fecha</th><th>Cant.</th><th>Precio un.</th><th></th></tr></thead><tbody>${r.lineas.map((_,j)=>recLineRow(i,j)).join('')}</tbody></table></div>
+  <div style="margin:6px 0"><button class="btn" onclick="recAddLine(${i})">+ Producto</button></div>
+  <h3 style="margin:12px 0 6px">Abonos</h3>
+  <div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Medio</th><th>Referencia</th><th>Nota</th><th>Valor</th><th></th></tr></thead><tbody>${r.pagos.map((_,j)=>recPayRow(i,j)).join('')||''}</tbody></table></div>
+  <div style="margin-top:6px"><button class="btn" onclick="recAddPay(${i})">+ Abono</button></div>`;
+}
+function recRenderCard(i){const el=$('recCard_'+i);if(el)el.innerHTML=recCardHtml(i);recUpdateSummary()}
+function recRender(){
+  $('recList').innerHTML=recRecs.map((_,i)=>`<div class="rec-card" id="recCard_${i}">${recCardHtml(i)}</div>`).join('')||'<div class="empty">No se pudo leer ninguna factura.</div>';
+  $('recErrors').innerHTML=recErrors.length?`<div class="note" style="color:var(--danger);margin:8px 0"><strong>No se pudieron leer ${recErrors.length} archivo(s):</strong><br>${recErrors.map(esc).join('<br>')}</div>`:'';
+  $('recStatus').textContent='';recUpdateSummary();
+}
+function recUpdateSummary(){
+  const n=recRecs.filter(r=>r.include).length,dups=recRecs.filter((r,i)=>recDupMsg(i)).length;
+  $('recSummary').innerHTML=`<strong>${recRecs.length}</strong> factura(s) leída(s) · <strong>${n}</strong> marcada(s) para recuperar${dups?` · <span style="color:var(--danger)">${dups} con número repetido o vacío (no se recuperan hasta corregirlo)</span>`:''}`;
+  $('recConfirmBtn').disabled=!n;$('recConfirmBtn').textContent=n?`Recuperar ${n} pedido(s)`:'Recuperar';
+}
+function recRefresh(i){
+  const c=$('recChips_'+i);if(c)c.innerHTML=recChips(i);
+  const nc=$('recNewClient_'+i);if(nc)nc.style.display=state.clients.some(x=>x.nombre===recRecs[i].cliente.trim())?'none':'grid';
+  recUpdateSummary();
+}
+function recSet(i,k,v){recRecs[i][k]=v;if(k==='include'){recUpdateSummary();return}recRefresh(i);if(k==='id')recRecs.forEach((_,j)=>{if(j!==i)recRefresh(j)})}
+function recSetLine(i,j,k,v){const l=recRecs[i].lineas[j];l[k]=(k==='cantidad'||k==='precio')?(v===''?0:Number(v)):v;recRefresh(i)}
+function recSetPay(i,j,k,v){const p=recRecs[i].pagos[j];p[k]=k==='valor'?(v===''?0:Number(v)):v;recRefresh(i)}
+function recAddLine(i){recRecs[i].lineas.push({producto:'',fecha:recRecs[i].fecha,cantidad:1,precio:0,sub:null});recRenderCard(i)}
+function recDelLine(i,j){recRecs[i].lineas.splice(j,1);recRenderCard(i)}
+function recAddPay(i){recRecs[i].pagos.push({fecha:recRecs[i].fecha,medio:'Transferencia',referencia:'',nota:'',valor:0});recRenderCard(i)}
+function recDelPay(i,j){recRecs[i].pagos.splice(j,1);recRenderCard(i)}
+function confirmRecover(){
+  const sel=recRecs.map((r,i)=>({r,i})).filter(x=>x.r.include),errs=[];
+  sel.forEach(({r,i})=>{
+    const tag=`${r.id||'(sin número)'}`,dm=recDupMsg(i);
+    if(dm)errs.push(`${tag}: ${dm.toLowerCase()}.`);
+    if(!r.cliente.trim())errs.push(`${tag}: falta el cliente.`);
+    if(!recIsDate(r.fecha))errs.push(`${tag}: la fecha del pedido no es válida.`);
+    if(!r.lineas.length)errs.push(`${tag}: no tiene productos.`);
+    r.lineas.forEach((l,j)=>{if(!l.producto.trim()||!(l.cantidad>0)||!Number.isFinite(l.precio))errs.push(`${tag}: revisa el producto ${j+1} (nombre, cantidad y precio).`);if(l.fecha&&!recIsDate(l.fecha))errs.push(`${tag}: fecha inválida en el producto ${j+1}.`)});
+    r.pagos.forEach((p,j)=>{if(!recIsDate(p.fecha)||!(p.valor>0))errs.push(`${tag}: revisa el abono ${j+1} (fecha y valor).`)});
+  });
+  if(errs.length){alert('Corrige esto antes de recuperar:\n\n'+errs.slice(0,8).join('\n')+(errs.length>8?`\n… y ${errs.length-8} más.`:''));return}
+  if(!sel.length)return;
+  let nClientes=0,nPagos=0;
+  sel.forEach(({r})=>{
+    const nombre=r.cliente.trim();
+    if(!state.clients.some(c=>c.nombre===nombre)){state.clients.push({nombre,telefono:r.tel.trim(),tiktok:r.ciudad.trim(),direccion:r.dir.trim(),notas:'',estado:'Activo'});nClientes++}
+    state.orders.push({id:r.id.trim(),cliente:nombre,fecha:r.fecha,estado:r.estado,notas:r.notas.trim(),lineas:r.lineas.map(l=>({producto:l.producto.trim(),cantidad:Number(l.cantidad),precio:Number(l.precio),fecha:l.fecha||r.fecha}))});
+    r.pagos.forEach(p=>{state.payments.push({id:uid(),pedido:r.id.trim(),fecha:p.fecha,cliente:nombre,valor:Number(p.valor),medio:p.medio||'Transferencia',referencia:p.referencia.trim(),nota:p.nota.trim()});nPagos++});
+  });
+  persist();closeRecoverModal();refresh();
+  alert(`Se recuperaron ${sel.length} pedido(s), ${nPagos} abono(s)${nClientes?` y ${nClientes} cliente(s) nuevo(s)`:''}.\n\nEl stock se descuenta solo, porque "Vendido" se calcula a partir de los pedidos. Revisa Inventario.`);
+}
 navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal();
 </script>
 
@@ -2961,6 +3231,18 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <div class="note" id="pcSummary" style="margin-bottom:10px"></div>
     <div class="tablewrap" style="max-height:380px"><table><thead><tr><th>Cliente</th><th>Fecha</th><th>Pedido</th><th>Cantidad</th><th>Precio</th><th>Origen</th></tr></thead><tbody id="pcBody"></tbody></table></div>
     <div class="modal-actions"><button class="btn" onclick="closeProductClients()">Cerrar</button></div>
+  </div>
+</div>
+<div id="recoverModal" class="modal-backdrop">
+  <div class="modal" style="width:min(1000px,calc(100% - 30px))">
+    <h2>Recuperar pedidos desde facturas</h2>
+    <div class="note">Se leen las facturas en PDF generadas por esta app. Revisa y corrige lo que haga falta: nada se guarda hasta que confirmes. Los pedidos cuyo número ya existe no se duplican. Al recuperar un pedido, el stock se descuenta automáticamente.</div>
+    <div id="recStatus" class="note" style="margin-top:8px"></div>
+    <div id="recSummary" style="margin:10px 0"></div>
+    <div id="recErrors"></div>
+    <div id="recList" style="max-height:58vh;overflow:auto;padding-right:4px"></div>
+    <datalist id="recClients"></datalist><datalist id="recProducts"></datalist>
+    <div class="modal-actions"><button class="btn" onclick="closeRecoverModal()">Cancelar</button><button class="btn primary" id="recConfirmBtn" onclick="confirmRecover()" disabled>Recuperar</button></div>
   </div>
 </div>
 <div id="catModal" class="modal-backdrop">
