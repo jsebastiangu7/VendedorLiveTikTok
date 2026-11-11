@@ -179,6 +179,33 @@ header,main,.app-footer{max-width:100%}
 .rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:8px}
 .rin{width:100%;min-width:90px;padding:6px 8px;border:1px solid var(--field-border);border-radius:8px;background:var(--field-bg);color:var(--ink);font:inherit;font-size:13px}
 .rin:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+
+/* ===== Finanzas, layout lateral y tema intermedio ===== */
+.goal{margin-bottom:12px}.goal-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;margin-bottom:4px}
+.goal-bar{height:12px;border-radius:999px;background:var(--thead-bg);border:1px solid var(--border);overflow:hidden}.goal-bar b{display:block;height:100%;border-radius:999px}
+.goalrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.goalrow .rin{flex:1 1 140px;width:auto}
+@media(min-width:900px){
+ body.layout-side:not(.device-tablet):not(.device-mobile){padding-left:250px}
+ body.layout-side:not(.device-tablet):not(.device-mobile) header{position:fixed;left:0;top:0;bottom:0;width:250px;overflow-y:auto;-webkit-backdrop-filter:none;backdrop-filter:none;border-right:1px solid var(--border);border-bottom:0;padding:14px 12px;gap:10px;z-index:30}
+ body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-top{flex-direction:column;align-items:stretch;gap:8px}
+ body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-top .brand{margin-right:0;font-size:19px;white-space:normal}
+ body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-top>*{max-width:100%}
+ body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-bottom{flex-direction:column;align-items:stretch;border-top:1px solid var(--border);padding-top:10px}
+ body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-bottom nav{display:flex!important;flex-direction:column;gap:2px}
+ body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-bottom nav button{text-align:left;border-radius:10px;width:100%}
+ body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-bottom .nav-mobile{display:none!important}
+}
+:root[data-theme="medio"]{color-scheme:light;
+ --bg:#8f8dbd;--card:#a9a7d3;--ink:#16161d;--muted:#34325c;
+ --primary:#2d2b55;--primary2:#3a3770;--primary-text:#1f1d45;--primary-light:#9593c6;--accent:#f4a62a;--accent2:#5b4a8f;--cream:#f0d9b5;--deep:#2d2b55;
+ --ok:#0f5a35;--ok-bg:#9bc9ae;--warn:#6b4300;--warn-bg:#e6cf9c;--danger:#8e1f1f;--danger-bg:#dba5a5;
+ --border:#7f7db0;--field-bg:#bcbae0;--field-border:#6f6da3;--thead-bg:#9d9bcb;--row-border:#8f8dbf;
+ --c1:#2d2b55;--c2:#c77d00;--c3:#6b4a9e;--c4:#a82f2f;--c5:#0f6b6b;--c6:#7a5c1f;--c7:#1f5d99;--c8:#4b4875;
+ --shadow-sm:0 1px 2px #1f1d4524,0 2px 8px #1f1d4518;--shadow-md:0 8px 28px #1f1d4530;--shadow-lg:0 24px 70px #1f1d4566;--ring:#2d2b5560}
+html[data-theme="medio"]{background:#8f8dbd}
+:root[data-theme="medio"] body{background:radial-gradient(900px 480px at 8% -8%,#f4a62a30,transparent 60%),radial-gradient(800px 460px at 100% 0%,#5b4a8f40,transparent 60%),var(--bg)}
+:root[data-theme="medio"] .btn.primary,:root[data-theme="medio"] nav button.active{background:linear-gradient(135deg,#2d2b55,#4a4590);color:#fdf3e1;box-shadow:0 4px 14px #1f1d4555}
+:root[data-theme="medio"] nav button:hover{background:#9593c6;color:#1f1d45}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="https://apis.google.com/js/api.js"></script>
@@ -209,6 +236,7 @@ header,main,.app-footer{max-width:100%}
   </div>
   <div class="icon-group" id="themeGroup">
     <button class="theme-btn active" data-theme="light" onclick="setTheme('light')" title="Modo claro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+    <button class="theme-btn" data-theme="medio" onclick="setTheme('medio')" title="Modo intermedio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
     <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="Modo oscuro"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
   </div>
 </div>
@@ -216,6 +244,23 @@ header,main,.app-footer{max-width:100%}
 <main>
 <section id="dashboard" class="view active">
   <h1>Dashboard</h1><div class="subtitle">Control rápido de ventas, pedidos, pagos e inventario.</div>
+  <div class="panel" id="resumenPanel">
+    <h2>Resumen <span class="note" id="resPeriod" style="font-weight:500"></span></h2>
+    <div class="grid cards" id="resKpis" style="margin-bottom:12px"></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+      <div><h3 style="margin:0 0 6px">Utilidad neta y libre (6 meses)</h3><div class="chart" id="chResBase"></div></div>
+      <div><h3 style="margin:0 0 6px">Reparto de la utilidad del mes</h3><div class="chart" id="chResReparto"></div></div>
+      <div><h3 style="margin:0 0 6px">Objetivos</h3><div id="chResGoals"></div></div>
+      <div><h3 style="margin:0 0 6px">Reinversión: sugerida vs. real</h3><div class="chart" id="chResReinv"></div></div>
+    </div>
+    <h3 style="margin:16px 0 8px">Datos para mirar de frente</h3>
+    <div class="grid cards3" id="resInsights"></div>
+  </div>
+  <div class="panel">
+    <h2>Objetivos</h2>
+    <div id="goalsDash"></div><div class="note" id="goalsNote" style="margin-top:6px"></div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn primary" onclick="openGoalDepModal()">+ Ingresar dinero a un objetivo</button><button class="btn" onclick="openGivingModal()">Entregas y donaciones</button><button class="btn" onclick="openExpenseModal()">Gastos operativos</button></div>
+  </div>
   <div class="grid cards">
     <div class="card"><div class="label">Ventas</div><div class="metric" id="mVentas">$0</div></div>
     <div class="card"><div class="label">Abonos recibidos</div><div class="metric" id="mAbonos">$0</div></div>
@@ -247,6 +292,20 @@ header,main,.app-footer{max-width:100%}
     </div>
     <div class="chart" id="chUtil" style="margin-top:12px"></div>
     <div id="utilTop" style="margin-top:12px"></div>
+    <h3 style="margin:18px 0 8px">Reparto de la utilidad</h3>
+    <div class="note" id="rNote" style="margin-bottom:8px"></div>
+    <div class="grid cards3" id="rCards">
+      <div class="card"><div class="label" id="rBaseLabel">Base</div><div class="metric" id="rBase">$0</div><div class="note" id="rBaseNote"></div></div>
+      <div class="card"><div class="label">Gastos operativos</div><div class="metric" id="rGastos">$0</div><div class="note">Se registran en "Gastos operativos"</div></div>
+      <div class="card"><div class="label" id="rDiezmoLabel">Diezmo</div><div class="metric" id="rDiezmo">$0</div><div class="note" id="rDiezmoNote"></div></div>
+      <div class="card"><div class="label" id="rOfrendaLabel">Ofrenda</div><div class="metric" id="rOfrenda">$0</div><div class="note" id="rOfrendaNote"></div></div>
+      <div class="card"><div class="label">Impuesto estimado</div><div class="metric" id="rImpuesto">$0</div><div class="note" id="rImpuestoNote"></div></div>
+      <div class="card" id="rReinvCard"><div class="label" id="rReinvLabel">Reinversión sugerida</div><div class="metric" id="rReinv">$0</div><div class="note" id="rReinvNote"></div></div>
+      <div class="card"><div class="label">Libre para ti</div><div class="metric" id="rLibre">$0</div><div class="note">Base − diezmo − ofrenda − impuesto − reinversión</div></div>
+    </div>
+    <div class="chart" id="chReparto" style="margin-top:12px"></div>
+    <div id="rRestockBox" style="margin-top:12px"><h3 style="margin:0 0 6px">Qué reponer primero</h3><div id="rRestock"></div></div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn" onclick="openGivingModal()">Registrar entrega / donación</button><button class="btn" onclick="openExpenseModal()">Gastos operativos</button></div>
     <h3 style="margin:18px 0 8px">Inversión del mes</h3>
     <div class="toolbar" style="margin-bottom:10px"><select id="invMonth" onchange="renderInversion()"></select><select id="invYear" onchange="renderInversion()"></select><span class="note">Monto de inventario ingresado (compras) en el mes. Usa la casilla "Incluir envío en el costo".</span></div>
     <div class="grid cards3">
@@ -276,6 +335,7 @@ header,main,.app-footer{max-width:100%}
     </div>
     <div class="chart" id="chTax" style="margin-top:12px"></div>
     <div id="taxObligation" style="margin-top:10px;font-weight:650;font-size:13px"></div>
+    <div id="taxDonations" style="margin-top:8px;font-size:13px"></div>
     <div class="note" style="margin-top:8px">Estimación orientativa con la tarifa del art. 241 del Estatuto Tributario (0 % hasta 1.090 UVT; 19 %, 28 %, 33 %, 35 %, 37 % y 39 % en los rangos siguientes). La UVT 2027 aún no es oficial: $55.668 es el valor estimado publicado (la de 2026 es $52.374); edítala cuando la DIAN la fije. Renta líquida = utilidad bruta − gastos deducibles que ingreses. No incluye otras rentas, patrimonio, deducciones personales ni anticipos; confirma con un contador antes de declarar.</div>
   </div>
   <div class="panel" style="margin-top:14px">
@@ -387,7 +447,30 @@ header,main,.app-footer{max-width:100%}
 </section>
 
 <section id="facturacion" class="view">
-  <h1>Facturación</h1><div class="subtitle">Personaliza los datos y el logo que aparecerán en las facturas generadas para cada pedido.</div>
+  <h1>Configuración</h1><div class="subtitle">Apariencia, finanzas, objetivos y facturación.</div>
+  <div class="panel"><h2>Apariencia</h2>
+    <div class="formgrid">
+      <div class="field"><label>Menú en vista PC</label><select id="cfgLayout" onchange="setLayout(this.value)"><option value="top">Barra superior</option><option value="side">Barra lateral</option></select></div>
+      <div class="field"><label>Tema</label><select id="cfgTheme" onchange="setTheme(this.value)"><option value="light">Claro</option><option value="medio">Intermedio</option><option value="dark">Oscuro</option></select></div>
+    </div>
+  </div>
+  <div class="panel"><h2>Finanzas</h2>
+    <div class="formgrid">
+      <div class="field"><label>Diezmo (% de la base)</label><input id="cfgDiezmo" type="number" min="0" max="100" step="0.5" onchange="setFin('diezmoPct',pctNum(this.value))"></div>
+      <div class="field"><label>Ofrenda (% de la base)</label><input id="cfgOfrenda" type="number" min="0" max="100" step="0.5" onchange="setFin('ofrendaPct',pctNum(this.value))"></div>
+      <div class="field"><label>Base de cálculo</label><select id="cfgBase" onchange="setFin('baseCobrado',this.value==='cobrado')"><option value="cobrado">Utilidad cobrada (lo que ya entró)</option><option value="facturado">Utilidad facturada</option></select></div>
+      <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="cfgReinvOn" style="width:auto" onchange="setFin('reinvEnabled',this.checked)"> Reinversión sugerida (% de la base)</label><input id="cfgReinvPct" type="number" min="0" max="100" step="1" onchange="setFin('reinvPct',pctNum(this.value))" placeholder="% de la base"></div>
+    </div>
+    <div class="note" style="margin-top:8px">Base = utilidad − gastos operativos registrados. Si no registras gastos, la base es la utilidad bruta.</div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn" onclick="openExpenseModal()">Gastos operativos</button><button class="btn" onclick="openGivingModal()">Entregas y donaciones</button></div>
+  </div>
+  <div class="panel"><h2>Objetivos</h2>
+    <div id="goalsCfg"></div>
+    <h3 style="margin:14px 0 6px">Nuevo objetivo</h3>
+    <div class="goalrow"><input class="rin" id="goalNewName" maxlength="60" placeholder="Nombre"><input class="rin" id="goalNewAmount" type="number" min="1" placeholder="Monto"><input class="rin" id="goalNewDate" type="date" title="Fecha límite (opcional)"><button class="btn primary" id="goalNewBtn" onclick="goalCfgAdd()">Agregar</button></div>
+    <div class="note" id="goalNewHint" style="margin-top:6px"></div>
+  </div>
+  <h2 style="margin:18px 0 6px">Facturación</h2><div class="subtitle">Datos y logo que aparecerán en las facturas de cada pedido.</div>
   <div class="panel">
     <div class="formgrid">
       <div class="field"><label>Nombre de la empresa</label><input id="invEmpresa" placeholder="Pandala Kawaii"></div>
@@ -489,12 +572,13 @@ function saveAll(){
   alert(driveAccessToken?'Datos guardados localmente y sincronizados con Google Drive.':'Datos guardados en este navegador. Conecta Google Drive para respaldo en la nube.');
 }
 function refresh(){
-  ensurePurchases();
+  ensurePurchases();ensureFin();goalsSync();
   applyUiLabels();applyNumbering();
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
+  renderResumen();renderGoalsDash();renderConfigFin();
 }
 function navInit(){
-  const items=[['dashboard','Dashboard'],['venta','Ventas'],['ventasProducto','Ventas por producto'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Facturación'],['legal','Legal']];
+  const items=[['dashboard','Dashboard'],['venta','Ventas'],['ventasProducto','Ventas por producto'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Configuración'],['legal','Legal']];
   $('nav').innerHTML=items.map(([id,t],i)=>`<button class="${i===0?'active':''}" data-view="${id}">${t}</button>`).join('');
   document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
   $('navMobile').innerHTML=items.map(([id,t])=>`<option value="${id}">${t}</option>`).join('');
@@ -1399,6 +1483,11 @@ function sanitizeState(d){
     savedAt:Number(d.savedAt)||0
   };
   if(Array.isArray(d.purchases))out.purchases=arr(d.purchases,['cantidad','costo','envio']);
+  if(Array.isArray(d.expenses))out.expenses=arr(d.expenses,['monto']);
+  if(Array.isArray(d.goals))out.goals=arr(d.goals,['monto']);
+  if(Array.isArray(d.goalDeposits))out.goalDeposits=arr(d.goalDeposits,['monto']);
+  if(Array.isArray(d.giving))out.giving=arr(d.giving,['monto']);
+  if(d.finConfig&&typeof d.finConfig==='object'&&!Array.isArray(d.finConfig))out.finConfig=sanObj(d.finConfig);
   if(d.orderNumbering&&typeof d.orderNumbering==='object')out.orderNumbering={prefix:String(d.orderNumbering.prefix||'TT').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)||'TT',start:Math.max(1,parseInt(d.orderNumbering.start)||1),digits:Math.min(8,Math.max(3,parseInt(d.orderNumbering.digits)||5))};
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string'&&d.uiLabels[k].trim())out.uiLabels[k]=d.uiLabels[k].trim().slice(0,40)})}
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string')out.uiLabels[k]=d.uiLabels[k].slice(0,40)})}
@@ -1513,12 +1602,15 @@ function setDevice(mode){
   localStorage.setItem('uiDevice',mode);
 }
 function setTheme(mode){
+  if(!['light','medio','dark'].includes(mode))mode='light';
   document.documentElement.setAttribute('data-theme',mode);
+  if($('cfgTheme'))$('cfgTheme').value=mode;
   document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===mode));
   localStorage.setItem('uiTheme',mode);
 }
 setDevice(localStorage.getItem('uiDevice')||'desktop');
 setTheme(localStorage.getItem('uiTheme')||'light');
+setLayout(localStorage.getItem('uiLayout')||'top');
 function openKitModal(){
   fillKitSelect();
   $('kitSelect').value='__new__';
@@ -2601,9 +2693,315 @@ function renderUtilidad(){
   const top=Object.values(by).map(o=>({...o,util:o.venta-o.costo})).sort((a,b)=>b.util-a.util).slice(0,10);
   renderUtilChart(rows,per);renderCategoriesDash(rows,per);
   $('utilTop').innerHTML=top.length?`<div class="tablewrap"><table><thead><tr><th>Producto (top 10 por utilidad)</th><th>Unid.</th><th>Ventas</th><th>Costo</th><th>Utilidad</th></tr></thead><tbody>${top.map(o=>`<tr><td>${esc(o.producto)}</td><td>${o.qty}</td><td>${money(o.venta)}</td><td>${money(o.costo)}</td><td>${money(o.util)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay ventas en este periodo.</div>';
+  renderReparto(per);
   renderInversion();
   renderTax();
 }
+/* ===== Finanzas: reparto de la utilidad, objetivos, gastos y entregas ===== */
+const FIN_DEFAULTS={diezmoPct:10,ofrendaPct:10,baseCobrado:true,reinvEnabled:false,reinvPct:30};
+const finCfg=()=>Object.assign({},FIN_DEFAULTS,state.finConfig||{});
+const pctNum=v=>Math.min(100,Math.max(0,Number(v)||0));
+function ensureFin(){['expenses','goals','goalDeposits','giving'].forEach(k=>{if(!Array.isArray(state[k]))state[k]=[]})}
+function setFin(k,v){state.finConfig=Object.assign({},state.finConfig||{},{[k]:v});persist();refresh()}
+const addDaysISO=(t,n)=>isoD(new Date(new Date(t+'T12:00:00Z').getTime()+n*86400000));
+const daysBetweenISO=(a,b)=>Math.round((new Date(b+'T12:00:00Z')-new Date(a+'T12:00:00Z'))/86400000);
+const monthPer=key=>{const y=Number(key.slice(0,4)),m=Number(key.slice(5,7));return {from:key+'-01',to:key+'-'+String(new Date(Date.UTC(y,m,0)).getUTCDate()).padStart(2,'0'),label:MONTHS_ES[m-1]+' '+y}};
+const shipOn=()=>$('utilShip')?$('utilShip').checked:true;
+function taxYearInfo(y){
+  const c=taxCfg(),uvt=Number(c.uvt)||UVT_2027_ESTIMADA,rows=salesLines(shipOn()).filter(r=>r.fecha.slice(0,4)===String(y));
+  const ingresos=rows.reduce((a,r)=>a+r.venta,0),util=ingresos-rows.reduce((a,r)=>a+r.costo,0),gastos=Number((c.gastos||{})[y])||0;
+  const base=Math.max(0,util-gastos),imp=Math.round(incomeTaxUvt(base/uvt)*uvt);
+  return {ingresos,util,gastos,base,imp,eff:base>0?imp/base:0,uvt};
+}
+function inversionPeriodo(per,ship){
+  ensurePurchases();
+  return state.purchases.filter(pu=>String(pu.fecha)>=per.from&&String(pu.fecha)<=per.to).reduce((a,pu)=>a+(Number(pu.cantidad)||0)*((Number(pu.costo)||0)+(ship?(Number(pu.envio)||0):0)),0);
+}
+function entregado(tipo,per){return (state.giving||[]).filter(g=>g.tipo===tipo&&String(g.fecha)>=per.from&&String(g.fecha)<=per.to).reduce((a,g)=>a+(Number(g.monto)||0),0)}
+// Reparto: utilidad (cobrada o facturada) − gastos = base; de la base salen diezmo, ofrenda, impuesto y reinversión; lo que queda es "libre"
+function repartoPeriodo(per,ship){
+  const cfg=finCfg();let util=0,cobrada=0,ventas=0;
+  state.orders.filter(o=>o.estado!=='Cancelado').forEach(o=>{
+    const tot=orderTotal(o),ratio=tot>0?Math.min(1,paid(o)/tot):1;
+    (o.lineas||[]).forEach(l=>{
+      const f=String(l.fecha||o.fecha||'');if(f<per.from||f>per.to)return;
+      const q=Number(l.cantidad)||0,v=(Number(l.precio)||0)*q,c=unitCostOf(l.producto,ship)*q;
+      util+=v-c;cobrada+=(v-c)*ratio;ventas+=v;
+    });
+  });
+  const gastos=(state.expenses||[]).filter(e=>String(e.fecha)>=per.from&&String(e.fecha)<=per.to).reduce((a,e)=>a+(Number(e.monto)||0),0);
+  const bruta=cfg.baseCobrado?cobrada:util,base=Math.max(0,bruta-gastos);
+  const yTax=per.to>'9000'?String(new Date().getFullYear()):per.to.slice(0,4),eff=taxYearInfo(yTax).eff;
+  const diezmo=base*pctNum(cfg.diezmoPct)/100,ofrenda=base*pctNum(cfg.ofrendaPct)/100,impuesto=base*eff;
+  const reinv=cfg.reinvEnabled?base*pctNum(cfg.reinvPct)/100:0,invertido=inversionPeriodo(per,ship);
+  return {util,cobrada,ventas,gastos,bruta,base,diezmo,ofrenda,impuesto,eff,reinv,invertido,libre:base-diezmo-ofrenda-impuesto-reinv,
+    entDiezmo:entregado('diezmo',per),entOfrenda:entregado('ofrenda',per),cfg};
+}
+/* --- Reparto en el dashboard (periodo de "Utilidad bruta") --- */
+function renderReparto(per){
+  if(!$('rCards'))return;
+  const r=repartoPeriodo(per,shipOn()),c=r.cfg,set=(id,t)=>{$(id).textContent=t};
+  set('rBaseLabel','Base: utilidad neta '+(c.baseCobrado?'cobrada':'facturada'));
+  set('rBase',money(r.base));
+  set('rBaseNote',`Utilidad ${c.baseCobrado?'cobrada':'facturada'} ${money(r.bruta)} − gastos ${money(r.gastos)}`);
+  set('rGastos',money(r.gastos));
+  set('rDiezmoLabel','Diezmo ('+pctNum(c.diezmoPct)+'%)');set('rDiezmo',money(r.diezmo));
+  set('rDiezmoNote',`Entregado ${money(r.entDiezmo)} · Pendiente ${money(Math.max(0,r.diezmo-r.entDiezmo))}`);
+  set('rOfrendaLabel','Ofrenda ('+pctNum(c.ofrendaPct)+'%)');set('rOfrenda',money(r.ofrenda));
+  set('rOfrendaNote',`Entregado ${money(r.entOfrenda)} · Pendiente ${money(Math.max(0,r.ofrenda-r.entOfrenda))}`);
+  set('rImpuesto',money(r.impuesto));set('rImpuestoNote','Tasa efectiva del año: '+(r.eff*100).toFixed(1)+'%');
+  $('rReinvCard').style.display=c.reinvEnabled?'':'none';
+  set('rReinvLabel','Reinversión sugerida ('+pctNum(c.reinvPct)+'%)');set('rReinv',money(r.reinv));
+  set('rReinvNote',`Invertido en el periodo: ${money(r.invertido)}${r.reinv>0?' ('+Math.round(r.invertido/r.reinv*100)+'% de lo sugerido)':''}`);
+  set('rLibre',money(r.libre));$('rLibre').style.color=r.libre<0?'var(--danger)':'';
+  set('rNote','Periodo: '+per.label);
+  chartDonut('chReparto',[{label:'Diezmo',value:r.diezmo,color:CH_COLORS[2]},{label:'Ofrenda',value:r.ofrenda,color:CH_COLORS[1]},{label:'Impuesto estimado',value:r.impuesto,color:CH_COLORS[3]},{label:'Reinversión sugerida',value:r.reinv,color:CH_COLORS[0]},{label:'Libre',value:Math.max(0,r.libre),color:CH_COLORS[4]}],{label:'Distribución de la base'});
+  $('rRestockBox').style.display=c.reinvEnabled?'':'none';
+  if(c.reinvEnabled)renderRestock();
+}
+function restockSuggestions(){
+  const since=addDaysISO(today(),-30),sold={};
+  state.orders.filter(o=>o.estado!=='Cancelado').forEach(o=>(o.lineas||[]).forEach(l=>{
+    const f=String(l.fecha||o.fecha||'');if(f<since)return;
+    const q=Number(l.cantidad)||0,kit=(state.kits||[]).find(k=>k.nombre===l.producto);
+    if(kit)(kit.componentes||[]).forEach(cp=>{sold[cp.producto]=(sold[cp.producto]||0)+q*(Number(cp.cantidad)||0)});
+    else sold[l.producto]=(sold[l.producto]||0)+q;
+  }));
+  return state.inventory.map(p=>{
+    const v=(sold[p.producto]||0)/30,cur=Math.max(0,stockInfo(p).current),cover=v>0?cur/v:Infinity,need=Math.max(0,Math.ceil(v*45)-cur);
+    return {p,v,cur,cover,need,cost:need*((Number(p.costo)||0)+(Number(p.envio)||0))};
+  }).filter(x=>x.v>0&&x.cover<=21&&x.need>0).sort((a,b)=>a.cover-b.cover).slice(0,8);
+}
+function renderRestock(){
+  const list=restockSuggestions();
+  $('rRestock').innerHTML=list.length?`<div class="tablewrap"><table><thead><tr><th>Producto</th><th>Stock</th><th>Alcanza para</th><th>Reponer</th><th>Costo est.</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.p.producto)}</td><td>${x.cur}</td><td>${x.cover<1?'<1 día':Math.round(x.cover)+' días'}</td><td>${x.need} u.</td><td>${money(x.cost)}</td></tr>`).join('')}</tbody></table></div><div class="note" style="margin-top:6px">Según lo vendido en los últimos 30 días: productos que se agotan en 21 días o menos, con cantidad para cubrir 45 días.</div>`:'<div class="empty">Ningún producto con ventas recientes está a punto de agotarse.</div>';
+}
+/* --- Objetivos --- */
+const GOAL_MAX=3;
+const goalsAll=()=>state.goals||(state.goals=[]);
+const goalsActive=()=>goalsAll().filter(g=>!g.archivado);
+const goalSaved=g=>(state.goalDeposits||[]).filter(d=>d.goal===g.id).reduce((a,d)=>a+(Number(d.monto)||0),0);
+function goalsSync(){ // al llegar al 100% el objetivo se archiva y libera el cupo; si baja del 100% y hay cupo, se reabre
+  let ch=false;
+  goalsAll().forEach(g=>{
+    const m=Number(g.monto)||0,s=goalSaved(g);
+    if(!g.archivado&&m>0&&s>=m){g.archivado=true;g.cumplido=today();ch=true}
+    else if(g.archivado&&g.cumplido&&s<m&&goalsActive().length<GOAL_MAX){g.archivado=false;delete g.cumplido;ch=true}
+  });
+  return ch;
+}
+function goalProjection(g){
+  const m=Number(g.monto)||0,s=goalSaved(g),rest=m-s;
+  if(rest<=0)return {txt:'¡Cumplido!',ok:true};
+  const deps=(state.goalDeposits||[]).filter(d=>d.goal===g.id&&recIsDate(d.fecha)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const lim=g.fechaLimite&&recIsDate(g.fechaLimite)?g.fechaLimite:'';
+  if(!deps.length||s<=0)return {txt:'Sin aportes todavía'+(lim?' · fecha límite '+lim:''),ok:null};
+  const rate=s/Math.max(30,daysBetweenISO(deps[0].fecha,today())),n=Math.ceil(rest/rate);
+  if(n>3650)return {txt:'Al ritmo actual tardarías más de 10 años',ok:false};
+  const eta=addDaysISO(today(),n);
+  return lim?{txt:`Al ritmo actual lo cumples hacia el ${eta} — ${eta<=lim?'a tiempo para tu límite ('+lim+')':'después de tu límite ('+lim+')'}`,ok:eta<=lim}:{txt:'Al ritmo actual lo cumples hacia el '+eta,ok:null};
+}
+function goalBarsHtml(compact){
+  const act=goalsActive();
+  if(!act.length)return '<div class="empty">No hay objetivos activos. Créalos en Configuración → Objetivos.</div>';
+  return act.map((g,i)=>{
+    const m=Number(g.monto)||0,s=goalSaved(g),pct=m>0?Math.min(100,s/m*100):0,pr=goalProjection(g),col=CH_COLORS[i%3];
+    return `<div class="goal"><div class="goal-top"><strong>${esc(g.nombre)}</strong><span>${esc(money(s))} / ${esc(money(m))} · <b>${pct.toFixed(0)}%</b></span></div><div class="goal-bar"><b style="width:${pct.toFixed(1)}%;background:${col}"></b></div>${compact?'':`<div class="note" style="color:${pr.ok===false?'var(--danger)':pr.ok?'var(--ok)':'var(--muted)'}">${esc(pr.txt)}</div>`}</div>`;
+  }).join('');
+}
+function renderGoalsDash(){
+  if(!$('goalsDash'))return;
+  $('goalsDash').innerHTML=goalBarsHtml(false);
+  const done=goalsAll().filter(g=>g.archivado&&g.cumplido);
+  $('goalsNote').textContent=done.length?`${done.length} objetivo(s) cumplido(s): ${done.map(g=>g.nombre).join(', ')}`:'';
+}
+function openGoalDepModal(){
+  if(!goalsActive().length){alert('Primero crea un objetivo en Configuración → Objetivos.');return}
+  $('gdFecha').value=today();$('gdMonto').value='';$('gdNota').value='';
+  $('gdGoal').innerHTML=goalsActive().map(g=>`<option value="${esc(g.id)}">${esc(g.nombre)}</option>`).join('');
+  renderGoalDepList();$('goalDepModal').classList.add('open');
+}
+function closeGoalDepModal(){$('goalDepModal').classList.remove('open')}
+let gdSorted=[];
+function renderGoalDepList(){
+  gdSorted=[...(state.goalDeposits||[])].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,60);
+  $('gdList').innerHTML=gdSorted.length?gdSorted.map((d,i)=>{
+    const opts=goalsAll().filter(g=>!g.archivado||g.id===d.goal);
+    return `<tr><td><select class="rin" id="gdG_${i}">${opts.map(g=>`<option value="${esc(g.id)}"${g.id===d.goal?' selected':''}>${esc(g.nombre)}</option>`).join('')}</select></td><td><input class="rin" type="date" id="gdF_${i}" value="${esc(d.fecha)}"></td><td><input class="rin" type="number" min="1" id="gdM_${i}" value="${Number(d.monto)||0}" style="width:120px"></td><td><input class="rin" id="gdN_${i}" value="${esc(d.nota||'')}"></td><td class="action-row"><button class="btn" onclick="goalDepSave(${i})">Guardar</button><button class="btn danger" onclick="goalDepDelete(${i})">Eliminar</button></td></tr>`;
+  }).join(''):'<tr><td colspan="5" class="empty">Aún no hay aportes.</td></tr>';
+}
+function goalDepAdd(){
+  const goal=$('gdGoal').value,monto=Number($('gdMonto').value),fecha=$('gdFecha').value;
+  if(!goal||!(monto>0)){alert('Elige el objetivo e ingresa un monto mayor a 0.');return}
+  if(!recIsDate(fecha)){alert('Elige una fecha válida.');return}
+  ensureFin();state.goalDeposits.push({id:uid(),goal,fecha,monto,nota:$('gdNota').value.trim().slice(0,200)});
+  const g=goalsAll().find(x=>x.id===goal),was=g&&!g.archivado;goalsSync();persist();
+  $('gdMonto').value='';$('gdNota').value='';refresh();renderGoalDepList();
+  if(g&&was&&g.archivado)alert(`¡Objetivo «${g.nombre}» cumplido! 🎉 Se archivó y liberó un cupo.`);
+}
+function goalDepSave(i){
+  const d=gdSorted[i];if(!d)return;
+  const monto=Number($('gdM_'+i).value),fecha=$('gdF_'+i).value;
+  if(!(monto>0)||!recIsDate(fecha)){alert('Revisa la fecha y el monto.');return}
+  d.goal=$('gdG_'+i).value;d.fecha=fecha;d.monto=monto;d.nota=$('gdN_'+i).value.trim().slice(0,200);
+  goalsSync();persist();refresh();renderGoalDepList();
+}
+function goalDepDelete(i){
+  const d=gdSorted[i];if(!d||!confirm('¿Eliminar este aporte?'))return;
+  state.goalDeposits=state.goalDeposits.filter(x=>x!==d);goalsSync();persist();refresh();renderGoalDepList();
+}
+/* --- Objetivos en Configuración --- */
+function goalsCfgRender(){
+  if(!$('goalsCfg'))return;
+  const act=goalsActive(),arch=goalsAll().filter(g=>g.archivado);
+  $('goalsCfg').innerHTML=(act.length?act.map((g,i)=>`<div class="goalrow"><input class="rin" id="gcN_${i}" value="${esc(g.nombre)}" maxlength="60" placeholder="Nombre"><input class="rin" id="gcM_${i}" type="number" min="1" value="${Number(g.monto)||0}" placeholder="Monto"><input class="rin" id="gcF_${i}" type="date" value="${esc(g.fechaLimite||'')}" title="Fecha límite (opcional)"><span class="note">Ahorrado ${esc(money(goalSaved(g)))}</span><button class="btn" onclick="goalCfgSave(${i})">Guardar</button><button class="btn danger" onclick="goalCfgDelete('${js(g.id)}')">Eliminar</button></div>`).join(''):'<div class="empty">Sin objetivos activos.</div>')
+   +(arch.length?`<h3 style="margin:14px 0 6px">Archivados</h3>${arch.map(g=>`<div class="goalrow"><span><strong>${esc(g.nombre)}</strong> · ${esc(money(g.monto))}</span><span class="note">${g.cumplido?'Cumplido el '+esc(g.cumplido):'Archivado'} · ahorrado ${esc(money(goalSaved(g)))}</span><button class="btn" onclick="goalReopen('${js(g.id)}')">Reabrir</button><button class="btn danger" onclick="goalCfgDelete('${js(g.id)}')">Eliminar</button></div>`).join('')}`:'');
+  $('goalNewBtn').disabled=act.length>=GOAL_MAX;
+  $('goalNewHint').textContent=act.length>=GOAL_MAX?`Ya tienes ${GOAL_MAX} objetivos activos. Cumple o elimina uno para agregar otro.`:`Puedes tener hasta ${GOAL_MAX} objetivos activos (${act.length}/${GOAL_MAX}).`;
+}
+function goalCfgAdd(){
+  const nombre=$('goalNewName').value.trim(),monto=Number($('goalNewAmount').value),lim=$('goalNewDate').value;
+  if(goalsActive().length>=GOAL_MAX){alert('Máximo '+GOAL_MAX+' objetivos activos.');return}
+  if(!nombre||!(monto>0)){alert('Escribe el nombre y un monto mayor a 0.');return}
+  if(lim&&!recIsDate(lim)){alert('Fecha límite inválida.');return}
+  goalsAll().push({id:uid(),nombre:nombre.slice(0,60),monto,fechaLimite:lim||'',archivado:false,creado:today()});
+  $('goalNewName').value='';$('goalNewAmount').value='';$('goalNewDate').value='';persist();refresh();
+}
+function goalCfgSave(i){
+  const g=goalsActive()[i];if(!g)return;
+  const nombre=$('gcN_'+i).value.trim(),monto=Number($('gcM_'+i).value),lim=$('gcF_'+i).value;
+  if(!nombre||!(monto>0)){alert('Revisa el nombre y el monto.');return}
+  g.nombre=nombre.slice(0,60);g.monto=monto;g.fechaLimite=recIsDate(lim)?lim:'';goalsSync();persist();refresh();
+}
+function goalCfgDelete(id){
+  const g=goalsAll().find(x=>x.id===id);if(!g)return;
+  const n=(state.goalDeposits||[]).filter(d=>d.goal===id).length;
+  if(!confirm(`¿Eliminar el objetivo «${g.nombre}»${n?` y sus ${n} aporte(s)`:''}? No se puede deshacer.`))return;
+  state.goals=state.goals.filter(x=>x.id!==id);state.goalDeposits=(state.goalDeposits||[]).filter(d=>d.goal!==id);persist();refresh();
+}
+function goalReopen(id){
+  const g=goalsAll().find(x=>x.id===id);if(!g)return;
+  if(goalsActive().length>=GOAL_MAX){alert('Ya hay '+GOAL_MAX+' objetivos activos.');return}
+  const s=goalSaved(g),v=Number(prompt(`Nuevo monto para «${g.nombre}» (mayor a lo ahorrado: ${money(s)})`,String(Math.ceil(s*1.5)||'')));
+  if(!(v>s)){alert('El nuevo monto debe ser mayor a lo ahorrado.');return}
+  g.monto=v;g.archivado=false;delete g.cumplido;persist();refresh();
+}
+/* --- Gastos --- */
+let expSorted=[];
+function openExpenseModal(){$('exFecha').value=today();$('exConcepto').value='';$('exMonto').value='';renderExpenseList();$('expenseModal').classList.add('open')}
+function closeExpenseModal(){$('expenseModal').classList.remove('open')}
+function renderExpenseList(){
+  expSorted=[...(state.expenses||[])].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,100);
+  $('exList').innerHTML=expSorted.length?expSorted.map((e,i)=>`<tr><td><input class="rin" type="date" id="exF_${i}" value="${esc(e.fecha)}"></td><td><input class="rin" id="exC_${i}" value="${esc(e.concepto||'')}"></td><td><input class="rin" type="number" min="1" id="exM_${i}" value="${Number(e.monto)||0}" style="width:120px"></td><td class="action-row"><button class="btn" onclick="expSave(${i})">Guardar</button><button class="btn danger" onclick="expDelete(${i})">Eliminar</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Sin gastos registrados.</td></tr>';
+}
+function expAdd(){
+  const fecha=$('exFecha').value,monto=Number($('exMonto').value),concepto=$('exConcepto').value.trim();
+  if(!recIsDate(fecha)||!(monto>0)||!concepto){alert('Completa fecha, concepto y un monto mayor a 0.');return}
+  ensureFin();state.expenses.push({id:uid(),fecha,concepto:concepto.slice(0,120),monto});persist();$('exConcepto').value='';$('exMonto').value='';refresh();renderExpenseList();
+}
+function expSave(i){
+  const e=expSorted[i];if(!e)return;const fecha=$('exF_'+i).value,monto=Number($('exM_'+i).value),concepto=$('exC_'+i).value.trim();
+  if(!recIsDate(fecha)||!(monto>0)||!concepto){alert('Revisa fecha, concepto y monto.');return}
+  e.fecha=fecha;e.monto=monto;e.concepto=concepto.slice(0,120);persist();refresh();renderExpenseList();
+}
+function expDelete(i){const e=expSorted[i];if(!e||!confirm('¿Eliminar este gasto?'))return;state.expenses=state.expenses.filter(x=>x!==e);persist();refresh();renderExpenseList()}
+/* --- Entregas y donaciones (diezmo, ofrenda y donaciones certificadas) --- */
+let givSorted=[],givEditing=null;
+function openGivingModal(){givingFormReset();renderGivingList();$('givingModal').classList.add('open')}
+function closeGivingModal(){$('givingModal').classList.remove('open')}
+function givingFormReset(){
+  givEditing=null;$('gvTipo').value='diezmo';$('gvFecha').value=today();$('gvMonto').value='';$('gvEntidad').value='';$('gvNit').value='';$('gvCert').value='';$('gvCertificada').checked=false;$('gvNota').value='';
+  $('gvSaveBtn').textContent='Agregar';$('gvCancelBtn').style.display='none';
+}
+function givingYearTotals(y){
+  const L=(state.giving||[]).filter(g=>String(g.fecha).slice(0,4)===String(y)),sum=f=>L.filter(f).reduce((a,g)=>a+(Number(g.monto)||0),0);
+  return {diezmo:sum(g=>g.tipo==='diezmo'),ofrenda:sum(g=>g.tipo==='ofrenda'),donacion:sum(g=>g.tipo==='donacion'),cert:sum(g=>g.certificada)};
+}
+function renderGivingList(){
+  const y=String(new Date().getFullYear()),t=givingYearTotals(y);
+  $('gvSummary').innerHTML=`<strong>${y}</strong> · Diezmo entregado ${esc(money(t.diezmo))} · Ofrenda ${esc(money(t.ofrenda))} · Otras donaciones ${esc(money(t.donacion))} · <strong>Certificadas ${esc(money(t.cert))}</strong>`;
+  givSorted=[...(state.giving||[])].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,100);
+  const TN={diezmo:'Diezmo',ofrenda:'Ofrenda',donacion:'Donación'};
+  $('gvList').innerHTML=givSorted.length?givSorted.map((g,i)=>`<tr><td>${esc(g.fecha)}</td><td>${esc(TN[g.tipo]||g.tipo)}</td><td>${esc(money(g.monto))}</td><td>${esc(g.entidad||'')}${g.nit?'<br><span class="note">NIT '+esc(g.nit)+'</span>':''}</td><td>${g.certificada?'<span class="pill ok">Certificada</span>'+(g.certificado?'<br><span class="note">N° '+esc(g.certificado)+'</span>':''):'<span class="note">—</span>'}</td><td>${esc(g.nota||'')}</td><td class="action-row"><button class="btn" onclick="givingEdit(${i})">Editar</button><button class="btn danger" onclick="givingDelete(${i})">Eliminar</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Aún no has registrado entregas.</td></tr>';
+}
+function givingSave(){
+  const monto=Number($('gvMonto').value),fecha=$('gvFecha').value;
+  if(!(monto>0)||!recIsDate(fecha)){alert('Ingresa una fecha válida y un monto mayor a 0.');return}
+  const rec={tipo:$('gvTipo').value,fecha,monto,entidad:$('gvEntidad').value.trim().slice(0,120),nit:$('gvNit').value.trim().slice(0,30),certificado:$('gvCert').value.trim().slice(0,40),certificada:$('gvCertificada').checked,nota:$('gvNota').value.trim().slice(0,200)};
+  if(rec.certificada&&!rec.entidad){alert('Para una donación certificada indica la entidad que la recibió.');return}
+  ensureFin();
+  if(givEditing){Object.assign(givEditing,rec)}else state.giving.push(Object.assign({id:uid()},rec));
+  persist();givingFormReset();refresh();renderGivingList();
+}
+function givingEdit(i){
+  const g=givSorted[i];if(!g)return;givEditing=g;
+  $('gvTipo').value=g.tipo;$('gvFecha').value=g.fecha;$('gvMonto').value=g.monto;$('gvEntidad').value=g.entidad||'';$('gvNit').value=g.nit||'';$('gvCert').value=g.certificado||'';$('gvCertificada').checked=!!g.certificada;$('gvNota').value=g.nota||'';
+  $('gvSaveBtn').textContent='Guardar cambios';$('gvCancelBtn').style.display='';
+}
+function givingDelete(i){const g=givSorted[i];if(!g||!confirm('¿Eliminar este registro?'))return;state.giving=state.giving.filter(x=>x!==g);persist();givingFormReset();refresh();renderGivingList()}
+function renderTaxDonations(y,imp){
+  if(!$('taxDonations'))return;
+  const cert=(state.giving||[]).filter(g=>g.certificada&&String(g.fecha).slice(0,4)===String(y)).reduce((a,g)=>a+(Number(g.monto)||0),0);
+  const desc=Math.min(cert*0.25,imp*0.25);
+  $('taxDonations').innerHTML=cert>0?`Donaciones certificadas de ${esc(y)}: <strong>${esc(money(cert))}</strong> · Posible descuento (25 % del valor donado, con tope del 25 % del impuesto): <strong>${esc(money(desc))}</strong> · Impuesto estimado después del descuento: <strong>${esc(money(Math.max(0,imp-desc)))}</strong><div class="note" style="margin-top:4px">Estimación orientativa (art. 257 ET): aplica solo a donaciones a entidades del Régimen Tributario Especial que te entreguen certificado. Confírmalo con tu contador antes de declarar.</div>`:'<span class="note">Sin donaciones certificadas registradas para este año. Regístralas en "Entregas y donaciones".</span>';
+}
+/* --- Configuración: finanzas y apariencia --- */
+function renderConfigFin(){
+  if(!$('cfgDiezmo'))return;
+  const c=finCfg();
+  $('cfgDiezmo').value=c.diezmoPct;$('cfgOfrenda').value=c.ofrendaPct;$('cfgBase').value=c.baseCobrado?'cobrado':'facturado';
+  $('cfgReinvOn').checked=!!c.reinvEnabled;$('cfgReinvPct').value=c.reinvPct;$('cfgReinvPct').disabled=!c.reinvEnabled;
+  $('cfgLayout').value=localStorage.getItem('uiLayout')==='side'?'side':'top';
+  $('cfgTheme').value=document.documentElement.getAttribute('data-theme')||'light';
+  goalsCfgRender();
+}
+function setLayout(mode){
+  mode=mode==='side'?'side':'top';document.body.classList.toggle('layout-side',mode==='side');
+  try{localStorage.setItem('uiLayout',mode)}catch(e){}
+  if($('cfgLayout'))$('cfgLayout').value=mode;
+}
+/* --- Resumen del inicio del dashboard --- */
+function deltaHtml(cur,prev){
+  if(!(prev>0))return cur>0?'<span style="color:var(--ok)">▲ sin mes anterior para comparar</span>':'<span class="note">sin datos del mes anterior</span>';
+  const d=(cur-prev)/prev*100;return `<span style="color:${d>=0?'var(--ok)':'var(--danger)'}">${d>=0?'▲':'▼'} ${Math.abs(d).toFixed(0)}% vs mes anterior (${esc(money(prev))})</span>`;
+}
+function renderResumen(){
+  if(!$('resKpis'))return;
+  const ship=shipOn(),cur=today().slice(0,7),keys=monthKeysBack(6,cur),per=monthPer(cur),prevPer=monthPer(keys[keys.length-2]);
+  const rs=keys.map(k=>repartoPeriodo(monthPer(k),ship)),r=rs[rs.length-1],p=rs[rs.length-2],c=r.cfg;
+  // KPIs
+  const act=goalsActive(),totM=act.reduce((a,g)=>a+(Number(g.monto)||0),0),totS=act.reduce((a,g)=>a+Math.min(goalSaved(g),Number(g.monto)||0),0),done=goalsAll().filter(g=>g.archivado&&g.cumplido).length;
+  const yp={from:cur.slice(0,4)+'-01-01',to:cur.slice(0,4)+'-12-31'},ry=repartoPeriodo(yp,ship),ent=ry.entDiezmo+ry.entOfrenda,deb=ry.diezmo+ry.ofrenda;
+  $('resKpis').innerHTML=[
+   ['Utilidad neta del mes',money(r.base),deltaHtml(r.base,p.base)],
+   ['Libre del mes',money(r.libre),`<span class="note">después de diezmo, ofrenda, impuesto${c.reinvEnabled?' y reinversión':''}</span>`],
+   ['Objetivos',act.length?(totM>0?Math.round(totS/totM*100):0)+'% de avance':'Sin objetivos',`<span class="note">${act.length} activo(s) · ${done} cumplido(s)</span>`],
+   ['Diezmo y ofrenda del año',money(ent)+' entregado',`<span class="note">calculado ${esc(money(deb))} · pendiente ${esc(money(Math.max(0,deb-ent)))}</span>`]
+  ].map(([l,v,s])=>`<div class="card"><div class="label">${esc(l)}</div><div class="metric" style="font-size:22px">${esc(v)}</div><div class="note" style="margin-top:4px">${s}</div></div>`).join('');
+  // Gráficas
+  chartBars('chResBase',keys.map(mesLabel),[{name:'Utilidad neta (base)',values:rs.map(x=>x.base),color:CH_COLORS[0]},{name:'Libre',values:rs.map(x=>x.libre),color:CH_COLORS[1]}],{label:'Utilidad neta y libre por mes',h:200});
+  chartDonut('chResReparto',[{label:'Diezmo',value:r.diezmo,color:CH_COLORS[2]},{label:'Ofrenda',value:r.ofrenda,color:CH_COLORS[1]},{label:'Impuesto estimado',value:r.impuesto,color:CH_COLORS[3]},{label:'Reinversión sugerida',value:r.reinv,color:CH_COLORS[0]},{label:'Libre',value:Math.max(0,r.libre),color:CH_COLORS[4]}],{label:'Reparto de la utilidad del mes'});
+  $('chResGoals').innerHTML=goalBarsHtml(true);
+  if(c.reinvEnabled)chartBars('chResReinv',keys.map(mesLabel),[{name:'Reinversión sugerida',values:rs.map(x=>x.reinv),color:CH_COLORS[0]},{name:'Invertido en inventario',values:rs.map(x=>x.invertido),color:CH_COLORS[1]}],{label:'Reinversión sugerida frente a lo invertido',h:200});
+  else $('chResReinv').innerHTML='<div class="empty">Activa la reinversión sugerida en Configuración → Finanzas para compararla con lo que realmente inviertes.</div>';
+  // Datos para mirar (lo bueno y lo incómodo)
+  const lines=salesLines(ship).filter(x=>x.fecha>=per.from&&x.fecha<=per.to),byP={},byD={},byC={};
+  lines.forEach(x=>{const u=x.venta-x.costo;byP[x.producto]=(byP[x.producto]||0)+u;byD[x.fecha]=(byD[x.fecha]||0)+u});
+  state.orders.filter(o=>o.estado!=='Cancelado').forEach(o=>(o.lineas||[]).forEach(l=>{const f=String(l.fecha||o.fecha||'');if(f>=per.from&&f<=per.to)byC[o.cliente]=(byC[o.cliente]||0)+(Number(l.precio)||0)*(Number(l.cantidad)||0)}));
+  const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1])[0],tp=top(byP),td=top(byD),tc=top(byC);
+  const porCobrar=state.orders.filter(o=>o.estado!=='Cancelado').reduce((a,o)=>a+Math.max(0,orderTotal(o)-paid(o)),0),st=inventoryValueStats();
+  const ins=[
+   ['Producto estrella del mes',tp?tp[0]:'—',tp?'Utilidad '+money(tp[1]):'Sin ventas este mes',''],
+   ['Mejor cliente del mes',tc?tc[0]:'—',tc?'Compró '+money(tc[1]):'Sin ventas este mes',''],
+   ['Mejor día del mes',td?td[0]:'—',td?'Utilidad '+money(td[1]):'Sin ventas este mes',''],
+   ['Por cobrar',money(porCobrar),porCobrar>0?'Saldo pendiente de pedidos activos':'Todo cobrado','warn'],
+   ['Inventario estancado (+90 días)',money(st.over90),st.pct.toFixed(0)+'% del inventario','warn'],
+   ['Gastos del mes',money(r.gastos),r.gastos>0?`${r.bruta>0?Math.round(r.gastos/r.bruta*100):0}% de la utilidad`:'Registra tus gastos para una base más real','warn']
+  ];
+  $('resInsights').innerHTML=ins.map(([l,v,s,k])=>`<div class="card"><div class="label">${esc(l)}</div><div class="metric" style="font-size:18px;${k==='warn'&&((l==='Por cobrar'&&porCobrar>0)||(l.startsWith('Inventario')&&st.pct>30))?'color:var(--warn)':''}">${esc(v)}</div><div class="note" style="margin-top:4px">${esc(s)}</div></div>`).join('');
+  $('resPeriod').textContent=per.label+(c.baseCobrado?' · base: lo cobrado':' · base: lo facturado');
+}
+
 const UVT_2027_ESTIMADA=55668;
 const TAX_TABLE=[[0,1090,0,0],[1090,1700,0.19,0],[1700,4100,0.28,116],[4100,8670,0.33,788],[8670,18970,0.35,2296],[18970,31000,0.37,5901],[31000,Infinity,0.39,10352]];
 function incomeTaxUvt(baseUvt){
@@ -2635,6 +3033,7 @@ function renderTax(keepInputs){
   $('tEfectiva').textContent=base>0?(imp/base*100).toFixed(1)+'%':'0%';
   const tope=1400*uvt;
   renderTaxChart(ingresos,util,gastos,imp,tope);
+  renderTaxDonations(y,imp);
   $('taxObligation').textContent=ingresos>=tope
     ?`⚠ Tus ingresos brutos del año (${money(ingresos)}) superan 1.400 UVT (${money(tope)}): probablemente estás obligado a declarar renta.`
     :`Tus ingresos brutos del año no superan 1.400 UVT (${money(tope)}). Aun así, podrías estar obligado a declarar por patrimonio, consumos con tarjeta, compras o consignaciones (también 1.400 UVT; patrimonio 4.500 UVT).`;
@@ -3245,6 +3644,32 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
     <div class="modal-actions"><button class="btn" onclick="closeRecoverModal()">Cancelar</button><button class="btn primary" id="recConfirmBtn" onclick="confirmRecover()" disabled>Recuperar</button></div>
   </div>
 </div>
+<div id="goalDepModal" class="modal-backdrop"><div class="modal" style="width:min(940px,calc(100% - 30px))"><h2>Ingresar dinero a un objetivo</h2>
+  <div class="formgrid"><div class="field"><label>Objetivo</label><select id="gdGoal"></select></div><div class="field"><label>Fecha</label><input type="date" id="gdFecha"></div><div class="field"><label>Monto</label><input type="number" min="1" id="gdMonto"></div><div class="field"><label>Nota</label><input id="gdNota" maxlength="200"></div></div>
+  <div class="toolbar" style="margin-top:10px"><button class="btn primary" onclick="goalDepAdd()">Agregar aporte</button><button class="btn" onclick="closeGoalDepModal()">Cerrar</button></div>
+  <h3 style="margin:14px 0 6px">Aportes</h3><div class="tablewrap"><table><thead><tr><th>Objetivo</th><th>Fecha</th><th>Monto</th><th>Nota</th><th></th></tr></thead><tbody id="gdList"></tbody></table></div>
+</div></div>
+<div id="expenseModal" class="modal-backdrop"><div class="modal" style="width:min(940px,calc(100% - 30px))"><h2>Gastos operativos</h2>
+  <div class="note" style="margin-bottom:8px">Empaques, publicidad, transporte, herramientas… Restan de la utilidad para calcular la base del reparto.</div>
+  <div class="formgrid"><div class="field"><label>Fecha</label><input type="date" id="exFecha"></div><div class="field"><label>Concepto</label><input id="exConcepto" maxlength="120"></div><div class="field"><label>Monto</label><input type="number" min="1" id="exMonto"></div></div>
+  <div class="toolbar" style="margin-top:10px"><button class="btn primary" onclick="expAdd()">Agregar gasto</button><button class="btn" onclick="closeExpenseModal()">Cerrar</button></div>
+  <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Monto</th><th></th></tr></thead><tbody id="exList"></tbody></table></div>
+</div></div>
+<div id="givingModal" class="modal-backdrop"><div class="modal" style="width:min(940px,calc(100% - 30px))"><h2>Entregas y donaciones</h2>
+  <div class="note" id="gvSummary" style="margin-bottom:8px"></div>
+  <div class="formgrid">
+    <div class="field"><label>Tipo</label><select id="gvTipo"><option value="diezmo">Diezmo</option><option value="ofrenda">Ofrenda</option><option value="donacion">Otra donación</option></select></div>
+    <div class="field"><label>Fecha</label><input type="date" id="gvFecha"></div>
+    <div class="field"><label>Monto</label><input type="number" min="1" id="gvMonto"></div>
+    <div class="field"><label>Entidad / iglesia</label><input id="gvEntidad" maxlength="120"></div>
+    <div class="field"><label>NIT de la entidad</label><input id="gvNit" maxlength="30"></div>
+    <div class="field"><label>N° de certificado</label><input id="gvCert" maxlength="40"></div>
+    <div class="field"><label style="display:flex;gap:8px;align-items:center;margin-top:22px"><input type="checkbox" id="gvCertificada" style="width:auto"> Donación certificada</label></div>
+    <div class="field"><label>Nota</label><input id="gvNota" maxlength="200"></div>
+  </div>
+  <div class="toolbar" style="margin-top:10px"><button class="btn primary" id="gvSaveBtn" onclick="givingSave()">Agregar</button><button class="btn" id="gvCancelBtn" style="display:none" onclick="givingFormReset()">Cancelar edición</button><button class="btn" onclick="closeGivingModal()">Cerrar</button></div>
+  <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Entidad</th><th>Certificada</th><th>Nota</th><th></th></tr></thead><tbody id="gvList"></tbody></table></div>
+</div></div>
 <div id="catModal" class="modal-backdrop">
   <div class="modal" style="width:min(600px,calc(100% - 30px))">
     <h2>Categorías</h2>
