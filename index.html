@@ -1436,7 +1436,7 @@ async function driveLoadDataRun(){
     refresh();loadInvoiceConfig();
     $('driveStatus').textContent='Datos cargados desde Google Drive'+(driveDupes>1?` — ⚠ hay ${driveDupes} archivos de guardado en tu Drive; se usa el más reciente`:'');
     if(driveDupes>1&&!window._driveDupeWarned){window._driveDupeWarned=true;setTimeout(()=>alert(`Aviso: tu Google Drive tiene ${driveDupes} archivos llamados "${DRIVE_FILENAME}" (copias creadas antes de esta corrección). La app usa el MÁS RECIENTE y ya no creará más.\n\nCuando confirmes que tus datos están completos, entra a drive.google.com y elimina las copias más antiguas para evitar confusiones.`),300)}
-  }catch(err){console.error(err);alert('Error al cargar datos desde Google Drive.');}
+  }catch(err){console.error(err);alert('Error al cargar datos desde Google Drive.'+(err&&err.message?'\n\nDetalle: '+err.message:''));}
 }
 function driveSaveData(retried){ // un guardado a la vez, en orden
   driveSaveChain=driveSaveChain.catch(()=>{}).then(()=>driveSaveRun(retried));
@@ -1483,7 +1483,7 @@ function checkFile(file,{maxMB,exts,label}){
 }
 const SAN_BAD_KEYS=new Set(['__proto__','constructor','prototype']);
 const SAN_IMG=/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+\/=]+$/;
-function sanObj(o,nums,nested){
+function sanObj(o,nums,nested){nums=nums||[];
   if(!o||typeof o!=='object'||Array.isArray(o))return null;
   const out={};
   Object.keys(o).forEach(k=>{
@@ -1516,7 +1516,7 @@ function sanitizeState(d){
   if(Array.isArray(d.goalDeposits))out.goalDeposits=arr(d.goalDeposits,['monto']);
   if(Array.isArray(d.giving))out.giving=arr(d.giving,['monto']);
   if(Array.isArray(d.shipments))out.shipments=arr(d.shipments,['monto']);
-  if(d.finConfig&&typeof d.finConfig==='object'&&!Array.isArray(d.finConfig))out.finConfig=sanObj(d.finConfig);
+  if(d.finConfig&&typeof d.finConfig==='object'&&!Array.isArray(d.finConfig))out.finConfig=sanObj(d.finConfig,[]);
   if(d.orderNumbering&&typeof d.orderNumbering==='object')out.orderNumbering={prefix:String(d.orderNumbering.prefix||'TT').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)||'TT',start:Math.max(1,parseInt(d.orderNumbering.start)||1),digits:Math.min(8,Math.max(3,parseInt(d.orderNumbering.digits)||5))};
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string'&&d.uiLabels[k].trim())out.uiLabels[k]=d.uiLabels[k].trim().slice(0,40)})}
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string')out.uiLabels[k]=d.uiLabels[k].slice(0,40)})}
