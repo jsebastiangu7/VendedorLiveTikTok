@@ -196,16 +196,14 @@ header,main,.app-footer{max-width:100%}
  body.layout-side:not(.device-tablet):not(.device-mobile) .hdr-bottom .nav-mobile{display:none!important}
 }
 :root[data-theme="medio"]{color-scheme:light;
- --bg:#8f8dbd;--card:#a9a7d3;--ink:#16161d;--muted:#34325c;
- --primary:#2d2b55;--primary2:#3a3770;--primary-text:#1f1d45;--primary-light:#9593c6;--accent:#f4a62a;--accent2:#5b4a8f;--cream:#f0d9b5;--deep:#2d2b55;
- --ok:#0f5a35;--ok-bg:#9bc9ae;--warn:#6b4300;--warn-bg:#e6cf9c;--danger:#8e1f1f;--danger-bg:#dba5a5;
- --border:#7f7db0;--field-bg:#bcbae0;--field-border:#6f6da3;--thead-bg:#9d9bcb;--row-border:#8f8dbf;
- --c1:#2d2b55;--c2:#c77d00;--c3:#6b4a9e;--c4:#a82f2f;--c5:#0f6b6b;--c6:#7a5c1f;--c7:#1f5d99;--c8:#4b4875;
- --shadow-sm:0 1px 2px #1f1d4524,0 2px 8px #1f1d4518;--shadow-md:0 8px 28px #1f1d4530;--shadow-lg:0 24px 70px #1f1d4566;--ring:#2d2b5560}
-html[data-theme="medio"]{background:#8f8dbd}
-:root[data-theme="medio"] body{background:radial-gradient(900px 480px at 8% -8%,#f4a62a30,transparent 60%),radial-gradient(800px 460px at 100% 0%,#5b4a8f40,transparent 60%),var(--bg)}
-:root[data-theme="medio"] .btn.primary,:root[data-theme="medio"] nav button.active{background:linear-gradient(135deg,#2d2b55,#4a4590);color:#fdf3e1;box-shadow:0 4px 14px #1f1d4555}
-:root[data-theme="medio"] nav button:hover{background:#9593c6;color:#1f1d45}
+ --bg:#d9d5cc;--card:#e9e5dd;--ink:#26242e;--muted:#5a5668;
+ --primary:#5446b0;--primary2:#463a9a;--primary-text:#43379a;--primary-light:#d8d2ec;--accent:#d98e0b;--accent2:#8a5ea0;--cream:#f0d9b5;--deep:#2d2b55;
+ --ok:#1f6b45;--ok-bg:#cde5d4;--warn:#7a5200;--warn-bg:#eedcad;--danger:#a93232;--danger-bg:#efcac8;
+ --border:#c6c0b4;--field-bg:#f2efe8;--field-border:#b9b2a4;--thead-bg:#ddd8cd;--row-border:#d3cdc1;
+ --c1:#5446b0;--c2:#d98e0b;--c3:#8a5ea0;--c4:#c24a45;--c5:#2f7f7a;--c6:#9c8450;--c7:#3f7db8;--c8:#77738c;
+ --shadow-sm:0 1px 2px #2d2b5510,0 2px 8px #2d2b550a;--shadow-md:0 8px 28px #2d2b5520;--shadow-lg:0 24px 70px #1a1a1f40;--ring:#5446b040}
+html[data-theme="medio"]{background:#d9d5cc}
+:root[data-theme="medio"] body{background:radial-gradient(900px 480px at 8% -8%,#d98e0b14,transparent 60%),radial-gradient(800px 460px at 100% 0%,#5446b014,transparent 60%),var(--bg)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="https://apis.google.com/js/api.js"></script>
@@ -236,7 +234,7 @@ html[data-theme="medio"]{background:#8f8dbd}
   </div>
   <div class="icon-group" id="themeGroup">
     <button class="theme-btn active" data-theme="light" onclick="setTheme('light')" title="Modo claro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
-    <button class="theme-btn" data-theme="medio" onclick="setTheme('medio')" title="Modo intermedio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+    <button class="theme-btn" data-theme="medio" onclick="setTheme('medio')" title="Modo suave (intermedio)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
     <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="Modo oscuro"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
   </div>
 </div>
@@ -260,6 +258,15 @@ html[data-theme="medio"]{background:#8f8dbd}
     <h2>Objetivos</h2>
     <div id="goalsDash"></div><div class="note" id="goalsNote" style="margin-top:6px"></div>
     <div class="toolbar" style="margin-top:10px"><button class="btn primary" onclick="openGoalDepModal()">+ Ingresar dinero a un objetivo</button><button class="btn" onclick="openGivingModal()">Entregas y donaciones</button><button class="btn" onclick="openExpenseModal()">Gastos operativos</button></div>
+  </div>
+  <div class="panel">
+    <h2>Logística</h2>
+    <div class="grid cards" id="logDashCards" style="margin-bottom:12px"></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+      <div><h3 style="margin:0 0 6px">Envíos del mes por transportadora</h3><div class="chart" id="chLogCarrier"></div></div>
+      <div><h3 style="margin:0 0 6px">Los que llevan más tiempo esperando</h3><div id="logDashList"></div></div>
+    </div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn" onclick="showView('logistica')">Ir a Logística</button></div>
   </div>
   <div class="grid cards">
     <div class="card"><div class="label">Ventas</div><div class="metric" id="mVentas">$0</div></div>
@@ -446,12 +453,19 @@ html[data-theme="medio"]{background:#8f8dbd}
   <div class="tablewrap" style="margin-top:10px"><table><thead id="paymentsHead"></thead><tbody id="paymentsBody"></tbody></table></div>
 </section>
 
+<section id="logistica" class="view">
+  <h1>Logística</h1><div class="subtitle">Pedidos pagados listos para despachar y envíos ya realizados.</div>
+  <div class="toolbar"><input id="logSearch" placeholder="Buscar pedido o cliente" oninput="renderLogistica()"></div>
+  <div class="panel"><h2>Por enviar <span class="pill" id="logPorCount">0</span></h2><div id="logPor"></div></div>
+  <div class="panel" style="margin-top:14px"><h2>Enviados <span class="pill" id="logEnvCount">0</span></h2><div id="logEnv"></div></div>
+</section>
+
 <section id="facturacion" class="view">
   <h1>Configuración</h1><div class="subtitle">Apariencia, finanzas, objetivos y facturación.</div>
   <div class="panel"><h2>Apariencia</h2>
     <div class="formgrid">
       <div class="field"><label>Menú en vista PC</label><select id="cfgLayout" onchange="setLayout(this.value)"><option value="top">Barra superior</option><option value="side">Barra lateral</option></select></div>
-      <div class="field"><label>Tema</label><select id="cfgTheme" onchange="setTheme(this.value)"><option value="light">Claro</option><option value="medio">Intermedio</option><option value="dark">Oscuro</option></select></div>
+      <div class="field"><label>Tema</label><select id="cfgTheme" onchange="setTheme(this.value)"><option value="light">Claro</option><option value="medio">Suave (intermedio)</option><option value="dark">Oscuro</option></select></div>
     </div>
   </div>
   <div class="panel"><h2>Finanzas</h2>
@@ -572,13 +586,13 @@ function saveAll(){
   alert(driveAccessToken?'Datos guardados localmente y sincronizados con Google Drive.':'Datos guardados en este navegador. Conecta Google Drive para respaldo en la nube.');
 }
 function refresh(){
-  ensurePurchases();ensureFin();goalsSync();
+  ensurePurchases();ensureFin();ensureShip();cleanShipments();goalsSync();
   applyUiLabels();applyNumbering();
   renderDashboard(); renderOrders(); renderInventory(); renderClients(); renderPayments(); fillSelects(); updateLiveTotals(); renderClientOrders();
-  renderResumen();renderGoalsDash();renderConfigFin();
+  renderResumen();renderGoalsDash();renderConfigFin();renderLogistica();renderLogDash();
 }
 function navInit(){
-  const items=[['dashboard','Dashboard'],['venta','Ventas'],['ventasProducto','Ventas por producto'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['facturacion','Configuración'],['legal','Legal']];
+  const items=[['dashboard','Dashboard'],['venta','Ventas'],['ventasProducto','Ventas por producto'],['pedidos','Pedidos'],['inventario','Inventario'],['clientes','Clientes'],['abonos','Abonos'],['logistica','Logística'],['facturacion','Configuración'],['legal','Legal']];
   $('nav').innerHTML=items.map(([id,t],i)=>`<button class="${i===0?'active':''}" data-view="${id}">${t}</button>`).join('');
   document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
   $('navMobile').innerHTML=items.map(([id,t])=>`<option value="${id}">${t}</option>`).join('');
@@ -783,17 +797,23 @@ let lastLineDate=''; // última fecha elegida: los productos siguientes la hered
 function addLine(product='',qty=1,fecha=''){
   const tr=document.createElement('tr');
   const productsSorted=[...state.inventory].sort((a,b)=>a.producto.localeCompare(b.producto,'es'));
-  const opts=productsSorted.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)} — ${money(p.precio)}</option>`).join('');
-  const kitsAvailable=(state.kits||[]).filter(k=>kitStockInfo(k).current>0||k.nombre===product);
+  const opts=productsSorted.map(p=>`<option value="${esc(p.producto)}">${esc(p.producto)} — ${money(p.precio)}${stockInfo(p).current<=0?' — AGOTADO':''}</option>`).join('');
+  const kitsAvailable=(state.kits||[]);
   const kitsSorted=kitsAvailable.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
-  const kitOpts=kitsSorted.map(k=>`<option value="${esc(k.nombre)}">🎁 ${esc(k.nombre)} — ${money(k.precioVenta)}</option>`).join('');
+  const kitOpts=kitsSorted.map(k=>`<option value="${esc(k.nombre)}">🎁 ${esc(k.nombre)} — ${money(k.precioVenta)}${kitStockInfo(k).current<=0?' — AGOTADO':''}</option>`).join('');
   const groups=`<option value="">Seleccionar…</option><optgroup label="Productos">${opts}</optgroup>`+(kitOpts?`<optgroup label="Kits">${kitOpts}</optgroup>`:'');
   tr.innerHTML=`<td><select class="lineProduct" onchange="lineChanged(this)">${groups}</select></td><td style="width:150px"><input class="lineDate" type="date" value="${esc(fecha||lastLineDate||today())}" onchange="if(this.value)lastLineDate=this.value" title="Fecha en que se registró este producto"></td><td style="width:90px"><input class="lineQty" type="number" min="1" value="${qty}" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="linePrice" type="number" min="0" value="0" oninput="updateLiveTotals()"></td><td style="width:130px"><input class="lineTotalInput" type="number" min="0" value="0" oninput="totalFieldChanged(this)"></td><td><button class="btn danger" onclick="this.closest('tr').remove();updateLiveTotals()">×</button></td>`;
   $('lineBody').appendChild(tr);
   const sel=tr.querySelector('.lineProduct');
   if(product){sel.value=product;lineChanged(sel)}
+  sel.dataset.enterNext='1';
   enhanceSearchable(sel);
   updateLiveTotals();
+}
+function focusNextLine(tr){
+  let nx=tr.nextElementSibling;
+  if(!nx){addLine();nx=$('lineBody').lastElementChild}
+  const inp=nx&&nx.querySelector('.ss-input');if(inp)inp.focus();
 }
 function lineChanged(sel){
   const tr=sel.closest('tr');
@@ -803,6 +823,14 @@ function lineChanged(sel){
   else if(k)tr.querySelector('.linePrice').value=k.precioVenta;
   updateLiveTotals();
 }
+document.addEventListener('ssenter',e=>{const tr=e.target.closest&&e.target.closest('#lineBody tr');if(tr)focusNextLine(tr)});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||e.isComposing)return;
+  const t=e.target;if(!t||!t.closest||t.classList.contains('ss-input'))return;
+  const tr=t.closest('#lineBody tr');if(!tr||t.tagName==='BUTTON'||t.tagName==='SELECT')return;
+  const sel=tr.querySelector('.lineProduct');if(!sel||!sel.value)return;
+  e.preventDefault();focusNextLine(tr);
+});
 function updateLiveTotals(){
   let t=0;
   document.querySelectorAll('#lineBody tr').forEach(tr=>{const q=Number(tr.querySelector('.lineQty').value)||0,p=Number(tr.querySelector('.linePrice').value)||0,x=q*p;t+=x;tr.querySelector('.lineTotalInput').value=x?Math.round(x):0});
@@ -1487,6 +1515,7 @@ function sanitizeState(d){
   if(Array.isArray(d.goals))out.goals=arr(d.goals,['monto']);
   if(Array.isArray(d.goalDeposits))out.goalDeposits=arr(d.goalDeposits,['monto']);
   if(Array.isArray(d.giving))out.giving=arr(d.giving,['monto']);
+  if(Array.isArray(d.shipments))out.shipments=arr(d.shipments,['monto']);
   if(d.finConfig&&typeof d.finConfig==='object'&&!Array.isArray(d.finConfig))out.finConfig=sanObj(d.finConfig);
   if(d.orderNumbering&&typeof d.orderNumbering==='object')out.orderNumbering={prefix:String(d.orderNumbering.prefix||'TT').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)||'TT',start:Math.max(1,parseInt(d.orderNumbering.start)||1),digits:Math.min(8,Math.max(3,parseInt(d.orderNumbering.digits)||5))};
   if(d.uiLabels&&typeof d.uiLabels==='object'){out.uiLabels={};['producto','kits'].forEach(k=>{if(typeof d.uiLabels[k]==='string'&&d.uiLabels[k].trim())out.uiLabels[k]=d.uiLabels[k].trim().slice(0,40)})}
@@ -1779,7 +1808,7 @@ function enhanceSearchable(select){
     if(e.key==='End'&&isOpen){e.preventDefault();setHl(optEls().length-1);return}
     if(e.key==='Enter'){
       e.preventDefault();
-      if(!isOpen){input.value='';openPanel();return}
+      if(!isOpen){if(select.dataset.enterNext&&select.value){select.dispatchEvent(new CustomEvent('ssenter',{bubbles:true}));return}input.value='';openPanel();return}
       const els=optEls();if(els[hl]&&els[hl]._opt)chooseOption(els[hl]._opt);
     }
   });
@@ -2697,6 +2726,133 @@ function renderUtilidad(){
   renderInversion();
   renderTax();
 }
+
+/* ===== Logística: Por enviar / Enviados ===== */
+const CARRIERS=['Interrapidísimo','Envía','Coordinadora','Servientrega','Envío local','Otra'];
+const carrierNeedsName=c=>c==='Envío local'||c==='Otra';
+const shipList=()=>state.shipments||(state.shipments=[]);
+const shipOf=id=>shipList().find(s=>s.pedido===id);
+const carrierLabel=s=>carrierNeedsName(s.transportadora)?(s.otra||s.transportadora):s.transportadora;
+function lastPayDate(o){const d=state.payments.filter(p=>p.pedido===o.id).map(p=>String(p.fecha||'')).sort().pop();return d||o.fecha||today()}
+function porEnviarList(){return state.orders.filter(o=>o.estado==='Pagado'&&!(shipOf(o.id)&&shipOf(o.id).estado==='enviado'))}
+function enviadosList(){return shipList().filter(s=>s.estado==='enviado'&&state.orders.some(o=>o.id===s.pedido))}
+function cleanShipments(){ // elimina envíos de pedidos borrados
+  if(!Array.isArray(state.shipments))return;
+  const ids=new Set(state.orders.map(o=>o.id));
+  state.shipments=state.shipments.filter(s=>ids.has(s.pedido));
+}
+function clientOf(name){return state.clients.find(c=>c.nombre===name)}
+function renderLogistica(){
+  if(!$('logPor'))return;
+  const q=normKey($('logSearch')?$('logSearch').value:'');
+  const por=porEnviarList().filter(o=>!q||normKey(o.id+' '+o.cliente).includes(q)).sort((a,b)=>lastPayDate(a).localeCompare(lastPayDate(b)));
+  $('logPorCount').textContent=porEnviarList().length;
+  $('logPor').innerHTML=por.length?`<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Ciudad</th><th>Total</th><th>Esperando</th><th>Estado</th><th></th></tr></thead><tbody>${por.map(o=>{
+    const s=shipOf(o.id),c=clientOf(o.cliente),d=daysSince(lastPayDate(o)),ciudad=(s&&s.ciudad)||(c&&c.tiktok)||'';
+    return `<tr><td>${esc(o.id)}</td><td>${esc(o.cliente)}</td><td>${esc(ciudad)}</td><td>${esc(money(orderTotal(o)))}</td><td style="${d>=3?'color:var(--warn);font-weight:700':''}">${d<=0?'hoy':d+' día(s)'}</td><td>${s?'<span class="pill warn">Guardado</span>':'<span class="pill">Sin datos</span>'}</td><td class="action-row"><button class="btn primary" onclick="openShipModal('${js(o.id)}')">${s?'Continuar envío':'Datos de envío'}</button></td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">No hay pedidos pagados esperando envío.</div>';
+  const env=enviadosList().filter(s=>!q||normKey(s.pedido+' '+(clientOf2(s.pedido))).includes(q)).sort((a,b)=>String(b.fechaEnvio||'').localeCompare(String(a.fechaEnvio||'')));
+  $('logEnvCount').textContent=enviadosList().length;
+  $('logEnv').innerHTML=env.length?`<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Enviado</th><th>Transportadora</th><th>Guía</th><th>Pago envío</th><th>Destino</th><th>Estado</th><th></th></tr></thead><tbody>${env.map(s=>{
+    const o=state.orders.find(x=>x.id===s.pedido);
+    return `<tr><td>${esc(s.pedido)}</td><td>${esc(o?o.cliente:'')}</td><td>${esc(s.fechaEnvio||'')}</td><td>${esc(carrierLabel(s))}</td><td>${esc(s.guia||'—')}</td><td>${s.pago==='por cobrar'?'<span class="pill warn">Por cobrar</span>':'<span class="pill ok">Adelantado</span>'} ${esc(money(s.monto))}</td><td>${esc(s.ciudad||'')}<br><span class="note">${esc(s.direccion||'')}</span></td><td>${o&&o.estado==='Entregado'?'<span class="pill ok">Entregado</span>':'<span class="pill warn">En camino</span>'}</td><td class="action-row"><button class="btn" onclick="openShipModal('${js(s.pedido)}')">Ver / editar</button>${o&&o.estado!=='Entregado'?`<button class="btn" onclick="shipDelivered('${js(s.pedido)}')">Entregado</button>`:''}<button class="btn danger" onclick="shipRevert('${js(s.pedido)}')">Volver a Por enviar</button></td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Aún no hay envíos registrados.</div>';
+}
+const clientOf2=id=>{const o=state.orders.find(x=>x.id===id);return o?o.cliente:''};
+let shipCur=null;
+function openShipModal(id){
+  const o=state.orders.find(x=>x.id===id);if(!o)return;
+  const s=shipOf(id),c=clientOf(o.cliente)||{};
+  shipCur=id;
+  $('shTitle').textContent='Envío · '+o.id+' · '+o.cliente;
+  $('shPago').value=s?s.pago:'adelantado';
+  $('shMonto').value=s&&s.monto!==undefined&&s.monto!==''?s.monto:'';
+  $('shTransp').value=s?s.transportadora:'Interrapidísimo';
+  $('shOtra').value=s?(s.otra||''):'';
+  $('shMedidas').value=s?(s.medidas||''):'';
+  $('shGuia').value=s?(s.guia||''):'';
+  $('shCiudad').value=s?(s.ciudad||''):(c.tiktok||'');
+  $('shDir').value=s?(s.direccion||''):(c.direccion||'');
+  $('shAddrMode').value='temporal';
+  $('shSent').style.display=s&&s.estado==='enviado'?'':'none';
+  $('shSendBtn').textContent=s&&s.estado==='enviado'?'Guardar cambios':'Enviar';
+  shipFormChanged();$('shipModal').classList.add('open');
+}
+function closeShipModal(){$('shipModal').classList.remove('open');shipCur=null}
+function shipFormData(){
+  return {pago:$('shPago').value,monto:$('shMonto').value.trim(),transportadora:$('shTransp').value,otra:$('shOtra').value.trim().slice(0,60),medidas:$('shMedidas').value.trim().slice(0,80),guia:$('shGuia').value.trim().slice(0,40),ciudad:$('shCiudad').value.trim().slice(0,80),direccion:$('shDir').value.trim().slice(0,200)};
+}
+function shipMissing(d){
+  const m=[];
+  if(!d.pago)m.push('pago');
+  if(d.monto===''||!(Number(d.monto)>=0))m.push('monto');
+  if(!d.transportadora)m.push('transportadora');
+  if(carrierNeedsName(d.transportadora)&&!d.otra)m.push('nombre de la transportadora');
+  if(!d.ciudad)m.push('ciudad');
+  if(!d.direccion)m.push('dirección');
+  return m;
+}
+function shipFormChanged(){
+  if(!shipCur)return;
+  const d=shipFormData(),o=state.orders.find(x=>x.id===shipCur),c=(o&&clientOf(o.cliente))||{};
+  $('shOtraField').style.display=carrierNeedsName(d.transportadora)?'':'none';
+  $('shOtraLbl').textContent=d.transportadora==='Envío local'?'Nombre del mensajero o servicio local':'Nombre de la transportadora';
+  const m=shipMissing(d);
+  $('shSendBtn').disabled=m.length>0;
+  $('shMissing').textContent=m.length?'Para enviar falta: '+m.join(', ')+'. Mientras tanto puedes guardar.':'Datos completos: ya puedes enviar.';
+  const diffC=c.tiktok&&d.ciudad&&d.ciudad!==c.tiktok,diffD=c.direccion&&d.direccion&&d.direccion!==c.direccion;
+  $('shAddrBox').style.display=diffC||diffD?'':'none';
+  const fill=[];if(!c.tiktok&&d.ciudad)fill.push('ciudad');if(!c.direccion&&d.direccion)fill.push('dirección');
+  $('shAddrFill').textContent=fill.length?'La '+fill.join(' y la ')+' se guardarán en la ficha del cliente porque no tenía.':'';
+}
+function shipApply(send){
+  const o=state.orders.find(x=>x.id===shipCur);if(!o)return;
+  const d=shipFormData();
+  if(send&&shipMissing(d).length){alert('Faltan datos para enviar.');return}
+  if(d.monto!==''&&!(Number(d.monto)>=0)){alert('El monto no es válido.');return}
+  const c=clientOf(o.cliente);
+  if(c){ // completa faltantes; si difiere de lo guardado, depende de principal/temporal
+    const principal=$('shAddrMode').value==='principal';
+    if(!c.tiktok&&d.ciudad)c.tiktok=d.ciudad;else if(principal&&d.ciudad&&c.tiktok!==d.ciudad)c.tiktok=d.ciudad;
+    if(!c.direccion&&d.direccion)c.direccion=d.direccion;else if(principal&&d.direccion&&c.direccion!==d.direccion)c.direccion=d.direccion;
+  }
+  ensureShip();
+  let s=shipOf(o.id);
+  const wasSent=s&&s.estado==='enviado';
+  if(!s){s={id:uid(),pedido:o.id,creado:today()};state.shipments.push(s)}
+  Object.assign(s,d,{monto:d.monto===''?'':Number(d.monto)});
+  if(send&&!wasSent){s.estado='enviado';s.fechaEnvio=today();if(o.estado==='Pagado')o.estado='Enviado'}
+  else if(!wasSent)s.estado='guardado';
+  persist();closeShipModal();refresh();
+}
+function shipDelivered(id){
+  const o=state.orders.find(x=>x.id===id),s=shipOf(id);if(!o||!s)return;
+  o.estado='Entregado';s.entregado=today();persist();refresh();
+}
+function shipRevert(id){
+  const o=state.orders.find(x=>x.id===id),s=shipOf(id);if(!o||!s)return;
+  if(!confirm('¿Devolver el pedido '+id+' a "Por enviar"? Los datos del envío se conservan como guardados.'))return;
+  s.estado='guardado';delete s.fechaEnvio;delete s.entregado;o.estado='Pagado';persist();refresh();
+}
+function ensureShip(){if(!Array.isArray(state.shipments))state.shipments=[]}
+/* --- Vista de logística en el dashboard --- */
+function renderLogDash(){
+  if(!$('logDashCards'))return;
+  const por=porEnviarList(),env=enviadosList(),guard=por.filter(o=>shipOf(o.id)).length;
+  const viejos=por.filter(o=>daysSince(lastPayDate(o))>=3).length;
+  const m=today().slice(0,7),envMes=env.filter(s=>String(s.fechaEnvio||'').slice(0,7)===m);
+  const camino=env.filter(s=>{const o=state.orders.find(x=>x.id===s.pedido);return o&&o.estado!=='Entregado'});
+  const cobrar=camino.filter(s=>s.pago==='por cobrar').reduce((a,s)=>a+(Number(s.monto)||0),0);
+  const costoMes=envMes.reduce((a,s)=>a+(Number(s.monto)||0),0);
+  const card=(l,v,n,warn)=>`<div class="card"><div class="label">${esc(l)}</div><div class="metric" style="font-size:22px;${warn?'color:var(--warn)':''}">${esc(String(v))}</div><div class="note" style="margin-top:4px">${esc(n)}</div></div>`;
+  $('logDashCards').innerHTML=card('Por enviar',por.length,guard+' con datos guardados',por.length>0&&viejos>0)
+   +card('Esperando 3+ días',viejos,viejos?'Pagados y sin despachar: el cliente ya pagó':'Todo al día',viejos>0)
+   +card('Enviados este mes',envMes.length,'Costo de fletes '+money(costoMes))
+   +card('En camino',camino.length,cobrar>0?'Flete por cobrar '+money(cobrar):'Sin flete por cobrar',cobrar>0);
+  const by={};envMes.forEach(s=>{const k=carrierLabel(s);by[k]=(by[k]||0)+1});
+  const items=Object.entries(by).map(([label,value],i)=>({label,value,color:CH_COLORS[i%CH_COLORS.length]}));
+  if(items.length)chartDonut('chLogCarrier',items,{label:'Envíos del mes por transportadora'});else $('chLogCarrier').innerHTML='<div class="empty">Sin envíos este mes.</div>';
+  $('logDashList').innerHTML=por.length?`<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Esperando</th><th></th></tr></thead><tbody>${por.sort((a,b)=>lastPayDate(a).localeCompare(lastPayDate(b))).slice(0,5).map(o=>{const d=daysSince(lastPayDate(o));return `<tr><td>${esc(o.id)}</td><td>${esc(o.cliente)}</td><td style="${d>=3?'color:var(--warn);font-weight:700':''}">${d<=0?'hoy':d+' día(s)'}</td><td class="action-row"><button class="btn" onclick="openShipModal('${js(o.id)}')">Enviar</button></td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Nada pendiente por despachar.</div>';
+}
+
 /* ===== Finanzas: reparto de la utilidad, objetivos, gastos y entregas ===== */
 const FIN_DEFAULTS={diezmoPct:10,ofrendaPct:10,baseCobrado:true,reinvEnabled:false,reinvPct:30};
 const finCfg=()=>Object.assign({},FIN_DEFAULTS,state.finConfig||{});
@@ -3669,6 +3825,26 @@ navInit();loadDefaults();refresh();loadInvoiceConfig();initDrive();renderLegal()
   </div>
   <div class="toolbar" style="margin-top:10px"><button class="btn primary" id="gvSaveBtn" onclick="givingSave()">Agregar</button><button class="btn" id="gvCancelBtn" style="display:none" onclick="givingFormReset()">Cancelar edición</button><button class="btn" onclick="closeGivingModal()">Cerrar</button></div>
   <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Entidad</th><th>Certificada</th><th>Nota</th><th></th></tr></thead><tbody id="gvList"></tbody></table></div>
+</div></div>
+<div id="shipModal" class="modal-backdrop"><div class="modal" style="width:min(760px,calc(100% - 30px))"><h2 id="shTitle">Envío</h2>
+  <div class="note" id="shSent" style="display:none;margin-bottom:8px">Este pedido ya fue enviado. Puedes corregir los datos.</div>
+  <div class="formgrid">
+    <div class="field"><label>Pago del envío</label><select id="shPago" onchange="shipFormChanged()"><option value="adelantado">Adelantado</option><option value="por cobrar">Por cobrar</option></select></div>
+    <div class="field"><label>Monto del envío</label><input id="shMonto" type="number" min="0" oninput="shipFormChanged()"></div>
+    <div class="field"><label>Transportadora</label><select id="shTransp" onchange="shipFormChanged()"><option>Interrapidísimo</option><option>Envía</option><option>Coordinadora</option><option>Servientrega</option><option>Envío local</option><option>Otra</option></select></div>
+    <div class="field" id="shOtraField" style="display:none"><label id="shOtraLbl">Nombre</label><input id="shOtra" maxlength="60" oninput="shipFormChanged()"></div>
+    <div class="field"><label>Medidas del paquete (opcional)</label><input id="shMedidas" maxlength="80" placeholder="Ej: 30x20x10 cm · 1,5 kg"></div>
+    <div class="field"><label>N° de guía (opcional)</label><input id="shGuia" maxlength="40"></div>
+    <div class="field"><label>Ciudad</label><input id="shCiudad" maxlength="80" oninput="shipFormChanged()"></div>
+    <div class="field"><label>Dirección</label><input id="shDir" maxlength="200" oninput="shipFormChanged()"></div>
+  </div>
+  <div id="shAddrBox" class="note" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:12px">
+    Cambiaste la ciudad o dirección que tiene el cliente. ¿Cómo se guarda?
+    <select id="shAddrMode" style="margin-left:6px"><option value="temporal">Temporal (solo este envío)</option><option value="principal">Principal (actualiza al cliente)</option></select>
+  </div>
+  <div class="note" id="shAddrFill" style="margin-top:6px"></div>
+  <div class="note" id="shMissing" style="margin-top:6px"></div>
+  <div class="toolbar" style="margin-top:12px"><button class="btn" onclick="shipApply(false)">Guardar</button><button class="btn primary" id="shSendBtn" onclick="shipApply(true)">Enviar</button><button class="btn" onclick="closeShipModal()">Cerrar</button></div>
 </div></div>
 <div id="catModal" class="modal-backdrop">
   <div class="modal" style="width:min(600px,calc(100% - 30px))">
