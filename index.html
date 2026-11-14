@@ -535,6 +535,107 @@ html[data-theme="medio"]{background:#d9d5cc}
     <div id="legalContent" class="legal-doc"></div>
   </div>
 </section>
+  <!-- VENTAS (Venta rápida / Live) -->
+  <section id="view-ventas" class="view">
+    <h1>🛒 Venta rápida (Live)</h1>
+    <p class="note">Captura el pedido mientras haces el LIVE. El botón Guardar registra todo en un solo paso.</p>
+    <div class="panel">
+      <div class="fgrid">
+        <div class="field">
+          <label>Cliente</label>
+          <select id="vClient">
+            <option value="new">+ Nuevo cliente</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Fecha</label>
+          <input id="vDate" type="date">
+        </div>
+        <div class="field">
+          <label>Estado inicial</label>
+          <select id="vStatus">
+            <option value="draft">Borrador</option>
+            <option value="pending_confirm">Por confirmar</option>
+            <option value="apartada">Apartada</option>
+            <option value="paid">Pagada</option>
+          </select>
+        </div>
+      </div>
+      
+      <h3 style="margin-top:16px">Productos</h3>
+      <div class="fgrid" style="align-items:end">
+        <div class="field" style="flex:2">
+          <label>Producto</label>
+          <select id="vProd"></select>
+        </div>
+        <div class="field" style="flex:0.5">
+          <label>Cant.</label>
+          <input id="vQty" type="number" min="1" value="1">
+        </div>
+        <div class="field" style="flex:0.5">
+          <label>Precio</label>
+          <input id="vPrice" type="number" min="0">
+        </div>
+        <div class="field" style="flex:0.5">
+          <label>&nbsp;</label>
+          <button class="btn primary" onclick="addVentaRow()">+ Agregar</button>
+        </div>
+      </div>
+
+      <div class="tablewrap" style="margin-top:12px">
+        <table class="adm">
+          <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Total</th><th></th></tr></thead>
+          <tbody id="vItems"></tbody>
+        </table>
+      </div>
+
+      <div class="totals" style="margin-top:16px">
+        <span>Total: <b id="vTotal">$0</b></span>
+      </div>
+
+      <h3 style="margin-top:24px">Abono inicial (opcional)</h3>
+      <div class="fgrid">
+        <div class="field"><label>Valor</label><input id="vPayAmount" type="number" min="0" value="0"></div>
+        <div class="field"><label>Medio</label><select id="vPayMethod"><option>Transferencia</option><option>Nequi</option><option>Daviplata</option><option>Efectivo</option><option>Bre-b</option><option>Otro</option></select></div>
+        <div class="field"><label>Referencia</label><input id="vPayRef"></div>
+        <div class="field"><label>Fecha</label><input id="vPayDate" type="date"></div>
+      </div>
+
+      <div class="actions" style="margin-top:20px; justify-content:flex-end">
+        <button class="btn" onclick="clearVenta()">Limpiar</button>
+        <button class="btn primary" onclick="saveVenta()">💾 Guardar pedido</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- VENTAS POR PRODUCTO (Asignación masiva) -->
+  <section id="view-ventas-prod" class="view">
+    <h1>📦 Ventas por producto</h1>
+    <p class="note">Elige un producto y asigna sus unidades disponibles a los clientes. Se sumará a su pedido abierto o se creará uno nuevo.</p>
+    <div class="panel">
+      <div class="fgrid" style="align-items:end">
+        <div class="field" style="flex:2">
+          <label>Producto con stock disponible</label>
+          <select id="vpProd"></select>
+        </div>
+        <div class="field" style="flex:1">
+          <label>Disponibles</label>
+          <input id="vpAvail" type="text" readonly style="background:var(--surface2); font-weight:800; color:var(--brand)">
+        </div>
+      </div>
+
+      <div class="tablewrap" style="margin-top:16px">
+        <table class="adm">
+          <thead><tr><th>Cliente</th><th>Pedido actual</th><th>Asignar cantidad</th></tr></thead>
+          <tbody id="vpClients"></tbody>
+        </table>
+      </div>
+
+      <div class="actions" style="margin-top:20px; justify-content:flex-end">
+        <button class="btn primary" onclick="saveVpAssignments()">✅ Asignar a pedidos</button>
+      </div>
+    </div>
+  </section>
 </main>
 <footer class="app-footer"><span>© JSGU</span><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a><a href="terminos.html" target="_blank" rel="noopener">Términos de servicio</a></footer>
 
