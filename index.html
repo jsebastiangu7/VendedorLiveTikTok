@@ -204,6 +204,66 @@ header,main,.app-footer{max-width:100%}
  --shadow-sm:0 1px 2px #2d2b5510,0 2px 8px #2d2b550a;--shadow-md:0 8px 28px #2d2b5520;--shadow-lg:0 24px 70px #1a1a1f40;--ring:#5446b040}
 html[data-theme="medio"]{background:#d9d5cc}
 :root[data-theme="medio"] body{background:radial-gradient(900px 480px at 8% -8%,#d98e0b14,transparent 60%),radial-gradient(800px 460px at 100% 0%,#5446b014,transparent 60%),var(--bg)}
+
+/* ===== Liquid glass (activable en Configuración → Apariencia) ===== */
+:root[data-glass="on"]{--g-hi:#ffffffb8;--g-lo:#ffffff26;--g-edge:#ffffff8c;--g-shadow:0 10px 36px #3a2f7a24;--g-fill:48%;--g-blur:24px}
+:root[data-glass="on"][data-theme="dark"]{--g-hi:#ffffff26;--g-lo:#ffffff08;--g-edge:#ffffff2e;--g-shadow:0 10px 40px #00000066;--g-fill:46%}
+:root[data-glass="on"][data-theme="medio"]{--g-hi:#ffffff8a;--g-edge:#ffffff70;--g-fill:52%}
+html[data-glass="on"]{background:
+  radial-gradient(60vmax 50vmax at 8% 0%,#a678b9aa,transparent 62%),
+  radial-gradient(55vmax 45vmax at 95% 8%,#f4a62a99,transparent 60%),
+  radial-gradient(60vmax 50vmax at 85% 100%,#4d8fcfaa,transparent 62%),
+  radial-gradient(50vmax 45vmax at 0% 95%,#ff8fb199,transparent 60%),
+  #efe9f7;background-attachment:fixed}
+html[data-glass="on"][data-theme="dark"]{background:
+  radial-gradient(60vmax 50vmax at 8% 0%,#6a5acd88,transparent 62%),
+  radial-gradient(55vmax 45vmax at 95% 8%,#c0734a66,transparent 60%),
+  radial-gradient(60vmax 50vmax at 85% 100%,#2f6fb577,transparent 62%),
+  radial-gradient(50vmax 45vmax at 0% 95%,#a0407a66,transparent 60%),
+  #12121a;background-attachment:fixed}
+html[data-glass="on"][data-theme="medio"]{background:
+  radial-gradient(60vmax 50vmax at 8% 0%,#a678b977,transparent 62%),
+  radial-gradient(55vmax 45vmax at 95% 8%,#f4a62a77,transparent 60%),
+  radial-gradient(60vmax 50vmax at 85% 100%,#4d8fcf77,transparent 62%),
+  #d9d5cc;background-attachment:fixed}
+html[data-glass="on"] body{background:transparent!important}
+html[data-glass="on"] .card,html[data-glass="on"] .panel,html[data-glass="on"] header,html[data-glass="on"] .tablewrap,html[data-glass="on"] .modal,html[data-glass="on"] .ss-panel{
+  background:linear-gradient(135deg,var(--g-hi),var(--g-lo) 42%,transparent 70%),color-mix(in srgb,var(--card) var(--g-fill),transparent);
+  -webkit-backdrop-filter:blur(var(--g-blur)) saturate(1.8) brightness(1.04);backdrop-filter:blur(var(--g-blur)) saturate(1.8) brightness(1.04);
+  border:1px solid var(--g-edge);
+  box-shadow:inset 0 1px 0 var(--g-hi),inset 0 -1px 0 var(--g-lo),inset 1px 0 0 var(--g-lo),var(--g-shadow)}
+html[data-glass="on"] header{border-radius:0 0 26px 26px;border-top:0}
+html[data-glass="on"] .modal{--g-blur:34px;--g-fill:62%;border-radius:30px}
+html[data-glass="on"] .modal-backdrop{background:#14102c40;-webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3)}
+html[data-glass="on"] .card::before{opacity:.55}
+html[data-glass="on"] .card:hover{transform:translateY(-2px)}
+html[data-glass="on"] table,html[data-glass="on"] td{background:transparent}
+html[data-glass="on"] th{background:color-mix(in srgb,var(--card) 35%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+html[data-glass="on"] tbody tr:hover td{background:color-mix(in srgb,var(--primary) 9%,transparent)}
+html[data-glass="on"] td,html[data-glass="on"] th{border-color:color-mix(in srgb,var(--ink) 9%,transparent)}
+html[data-glass="on"] .field input,html[data-glass="on"] .field select,html[data-glass="on"] .field textarea,html[data-glass="on"] .toolbar input,html[data-glass="on"] .toolbar select,html[data-glass="on"] .order-lines input,html[data-glass="on"] .order-lines select,html[data-glass="on"] .ss-input,html[data-glass="on"] .nav-mobile,html[data-glass="on"] .rin{
+  background:color-mix(in srgb,var(--field-bg) 45%,transparent);border:1px solid var(--g-edge);
+  box-shadow:inset 0 1px 3px #00000014,inset 0 1px 0 var(--g-lo);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+html[data-glass="on"] .btn{background:linear-gradient(180deg,var(--g-hi),var(--g-lo)),color-mix(in srgb,var(--card) 40%,transparent);border:1px solid var(--g-edge);
+  box-shadow:inset 0 1px 0 var(--g-hi),0 4px 14px #3a2f7a1a;-webkit-backdrop-filter:blur(12px) saturate(1.6);backdrop-filter:blur(12px) saturate(1.6);border-radius:999px}
+html[data-glass="on"] .btn:hover{box-shadow:inset 0 1px 0 var(--g-hi),0 8px 22px #3a2f7a30;transform:translateY(-1px)}
+html[data-glass="on"] .btn.primary,html[data-glass="on"] nav button.active,html[data-glass="on"] .icon-group button.active{
+  background:linear-gradient(180deg,#ffffff55,#ffffff00 55%),linear-gradient(135deg,color-mix(in srgb,var(--primary) 92%,transparent),color-mix(in srgb,#8b7df0 88%,transparent));
+  color:#fff;border:1px solid #ffffff66;box-shadow:inset 0 1px 0 #ffffffaa,inset 0 -2px 6px #00000026,0 8px 22px #6a5acd55}
+html[data-glass="on"] .btn.danger{color:var(--danger)}
+html[data-glass="on"] .save{background:linear-gradient(180deg,#ffffff66,#ffffff00 55%),linear-gradient(135deg,#f4a62acc,#f8c15ccc);border:1px solid #ffffff80;box-shadow:inset 0 1px 0 #fffc,0 8px 22px #f4a62a66;border-radius:999px;color:#1a1a1f}
+html[data-glass="on"] .icon-group{background:color-mix(in srgb,var(--card) 35%,transparent);border:1px solid var(--g-edge);box-shadow:inset 0 1px 2px #00000012;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+html[data-glass="on"] nav button:hover{background:color-mix(in srgb,var(--card) 55%,transparent)}
+html[data-glass="on"] .pill{border:1px solid var(--g-edge);box-shadow:inset 0 1px 0 var(--g-hi)}
+html[data-glass="on"] .goal-bar{background:color-mix(in srgb,var(--card) 35%,transparent);box-shadow:inset 0 1px 3px #00000020}
+html[data-glass="on"] .goal-bar b{box-shadow:inset 0 1px 0 #ffffff88}
+html[data-glass="on"] .ss-option.hl,html[data-glass="on"] .ss-option:hover{background:color-mix(in srgb,var(--primary) 18%,transparent)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  html[data-glass="on"] .card,html[data-glass="on"] .panel,html[data-glass="on"] header,html[data-glass="on"] .tablewrap,html[data-glass="on"] .modal,html[data-glass="on"] .ss-panel{background:var(--card)}
+}
+@media(prefers-reduced-transparency:reduce){
+  html[data-glass="on"] .card,html[data-glass="on"] .panel,html[data-glass="on"] header,html[data-glass="on"] .tablewrap,html[data-glass="on"] .modal,html[data-glass="on"] .ss-panel{background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="https://apis.google.com/js/api.js"></script>
@@ -465,6 +525,7 @@ html[data-theme="medio"]{background:#d9d5cc}
   <div class="panel"><h2>Apariencia</h2>
     <div class="formgrid">
       <div class="field"><label>Menú en vista PC</label><select id="cfgLayout" onchange="setLayout(this.value)"><option value="top">Barra superior</option><option value="side">Barra lateral</option></select></div>
+      <div class="field"><label>Estilo</label><select id="cfgStyle" onchange="setGlass(this.value==='glass')"><option value="glass">Liquid glass</option><option value="classic">Clásico</option></select></div>
       <div class="field"><label>Tema</label><select id="cfgTheme" onchange="setTheme(this.value)"><option value="light">Claro</option><option value="medio">Suave (intermedio)</option><option value="dark">Oscuro</option></select></div>
     </div>
   </div>
@@ -535,78 +596,6 @@ html[data-theme="medio"]{background:#d9d5cc}
     <div id="legalContent" class="legal-doc"></div>
   </div>
 </section>
-  <!-- VENTAS (Venta rápida / Live) -->
-  <section id="view-ventas" class="view">
-    <h1>🛒 Venta rápida (Live)</h1>
-    <p class="note">Captura el pedido mientras haces el LIVE. El botón Guardar registra todo en un solo paso.</p>
-    <div class="panel">
-      <div class="fgrid">
-        <div class="field">
-          <label>Cliente</label>
-          <select id="vClient">
-            <option value="new">+ Nuevo cliente</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Fecha</label>
-          <input id="vDate" type="date">
-        </div>
-        <div class="field">
-          <label>Estado inicial</label>
-          <select id="vStatus">
-            <option value="draft">Borrador</option>
-            <option value="pending_confirm">Por confirmar</option>
-            <option value="apartada">Apartada</option>
-            <option value="paid">Pagada</option>
-          </select>
-        </div>
-      </div>
-      
-      <h3 style="margin-top:16px">Productos</h3>
-      <div class="fgrid" style="align-items:end">
-        <div class="field" style="flex:2">
-          <label>Producto</label>
-          <select id="vProd"></select>
-        </div>
-        <div class="field" style="flex:0.5">
-          <label>Cant.</label>
-          <input id="vQty" type="number" min="1" value="1">
-        </div>
-        <div class="field" style="flex:0.5">
-          <label>Precio</label>
-          <input id="vPrice" type="number" min="0">
-        </div>
-        <div class="field" style="flex:0.5">
-          <label>&nbsp;</label>
-          <button class="btn primary" onclick="addVentaRow()">+ Agregar</button>
-        </div>
-      </div>
-
-      <div class="tablewrap" style="margin-top:12px">
-        <table class="adm">
-          <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Total</th><th></th></tr></thead>
-          <tbody id="vItems"></tbody>
-        </table>
-      </div>
-
-      <div class="totals" style="margin-top:16px">
-        <span>Total: <b id="vTotal">$0</b></span>
-      </div>
-
-      <h3 style="margin-top:24px">Abono inicial (opcional)</h3>
-      <div class="fgrid">
-        <div class="field"><label>Valor</label><input id="vPayAmount" type="number" min="0" value="0"></div>
-        <div class="field"><label>Medio</label><select id="vPayMethod"><option>Transferencia</option><option>Nequi</option><option>Daviplata</option><option>Efectivo</option><option>Bre-b</option><option>Otro</option></select></div>
-        <div class="field"><label>Referencia</label><input id="vPayRef"></div>
-        <div class="field"><label>Fecha</label><input id="vPayDate" type="date"></div>
-      </div>
-
-      <div class="actions" style="margin-top:20px; justify-content:flex-end">
-        <button class="btn" onclick="clearVenta()">Limpiar</button>
-        <button class="btn primary" onclick="saveVenta()">💾 Guardar pedido</button>
-      </div>
-    </div>
-  </section>
 </main>
 <footer class="app-footer"><span>© JSGU</span><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a><a href="terminos.html" target="_blank" rel="noopener">Términos de servicio</a></footer>
 
@@ -1712,6 +1701,8 @@ function setTheme(mode){
 setDevice(localStorage.getItem('uiDevice')||'desktop');
 setTheme(localStorage.getItem('uiTheme')||'light');
 setLayout(localStorage.getItem('uiLayout')||'top');
+function setGlass(on){document.documentElement.setAttribute('data-glass',on?'on':'off');try{localStorage.setItem('uiStyle',on?'glass':'classic')}catch(e){}if($('cfgStyle'))$('cfgStyle').value=on?'glass':'classic'}
+setGlass((localStorage.getItem('uiStyle')||'glass')==='glass');
 function openKitModal(){
   fillKitSelect();
   $('kitSelect').value='__new__';
