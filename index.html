@@ -607,35 +607,6 @@ html[data-theme="medio"]{background:#d9d5cc}
       </div>
     </div>
   </section>
-
-  <!-- VENTAS POR PRODUCTO (Asignación masiva) -->
-  <section id="view-ventas-prod" class="view">
-    <h1>📦 Ventas por producto</h1>
-    <p class="note">Elige un producto y asigna sus unidades disponibles a los clientes. Se sumará a su pedido abierto o se creará uno nuevo.</p>
-    <div class="panel">
-      <div class="fgrid" style="align-items:end">
-        <div class="field" style="flex:2">
-          <label>Producto con stock disponible</label>
-          <select id="vpProd"></select>
-        </div>
-        <div class="field" style="flex:1">
-          <label>Disponibles</label>
-          <input id="vpAvail" type="text" readonly style="background:var(--surface2); font-weight:800; color:var(--brand)">
-        </div>
-      </div>
-
-      <div class="tablewrap" style="margin-top:16px">
-        <table class="adm">
-          <thead><tr><th>Cliente</th><th>Pedido actual</th><th>Asignar cantidad</th></tr></thead>
-          <tbody id="vpClients"></tbody>
-        </table>
-      </div>
-
-      <div class="actions" style="margin-top:20px; justify-content:flex-end">
-        <button class="btn primary" onclick="saveVpAssignments()">✅ Asignar a pedidos</button>
-      </div>
-    </div>
-  </section>
 </main>
 <footer class="app-footer"><span>© JSGU</span><a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a><a href="terminos.html" target="_blank" rel="noopener">Términos de servicio</a></footer>
 
